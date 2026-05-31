@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PixelRun — Easy Game</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕹</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0d0d18;--surface:#161622;--border:#252540;
+    --accent:#4fffb0;--accent2:#ff4d7d;--accent3:#60b4ff;
+    --gold:#ffc842;--text:#d8d8ee;--muted:#505068;
+    --pixel:'Press Start 2P',monospace;--body:'Outfit',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);}
+  body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.05) 3px,rgba(0,0,0,0.05) 4px);}
+
+  .screen{display:none;position:fixed;inset:0;}
+  .screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+
+  /* ═══ LOGIN ═══ */
+  #loginScreen{overflow:hidden;background:#0d0d18;}
+  .login-bg{position:absolute;inset:0;overflow:hidden;background:radial-gradient(ellipse at 30% 60%,#0a2040 0%,#0d0d18 55%),radial-gradient(ellipse at 70% 20%,#150a30 0%,transparent 60%);}
+  .login-particles{position:absolute;inset:0;pointer-events:none;}
+  .lp{position:absolute;border-radius:50%;animation:lp-float linear infinite;opacity:0;}
+  @keyframes lp-float{0%{transform:translateY(100vh) scale(0.5);opacity:0;}10%{opacity:1;}90%{opacity:0.6;}100%{transform:translateY(-20vh) scale(1.2);opacity:0;}}
+
+  /* XO floating symbols */
+  .xo-sym{position:absolute;font-family:var(--pixel);pointer-events:none;animation:xo-rise linear infinite;opacity:0;}
+  @keyframes xo-rise{0%{transform:translateY(100vh) rotate(0deg);opacity:0;}10%{opacity:0.55;}80%{opacity:0.3;}100%{transform:translateY(-15vh) rotate(30deg);opacity:0;}}
+
+  .login-card{
+    position:relative;z-index:10;
+    background:rgba(22,22,34,0.88);border:1px solid rgba(79,255,176,0.25);
+    border-top:3px solid var(--accent);border-radius:4px;padding:48px 40px;
+    max-width:460px;width:calc(100% - 32px);text-align:center;
+    box-shadow:0 0 80px rgba(79,255,176,0.07),0 24px 80px rgba(0,0,0,0.6);
+    animation:fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both;backdrop-filter:blur(16px);
+  }
+  .game-logo{font-family:var(--pixel);font-size:28px;color:var(--accent);letter-spacing:2px;text-shadow:0 0 30px rgba(79,255,176,0.6);margin-bottom:8px;}
+  .game-logo span{color:var(--accent2);text-shadow:0 0 30px rgba(255,77,125,0.6);}
+  .tagline{font-size:11px;color:var(--muted);margin-bottom:32px;letter-spacing:1px;}
+  .pixel-char{font-size:52px;margin-bottom:20px;animation:bounce 1.2s ease-in-out infinite;display:block;}
+  @keyframes bounce{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-10px) rotate(3deg);}}
+
+  /* GOOGLE BTN — UNCHANGED */
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:15px 24px;background:rgba(255,255,255,0.04);border:1px solid rgba(79,255,176,0.3);color:var(--text);font-family:var(--body);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.25s;border-radius:3px;position:relative;overflow:hidden;}
+  .google-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(79,255,176,0.08),transparent);transform:translateX(-100%);transition:transform 0.5s;}
+  .google-btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 0 24px rgba(79,255,176,0.15);background:rgba(79,255,176,0.04);}
+  .google-btn:hover::before{transform:translateX(100%);}
+  .google-icon{width:20px;height:20px;flex-shrink:0;}
+
+  /* ═══ GAME SCREEN ═══ */
+  #gameScreen{padding:0;overflow:hidden;background:radial-gradient(ellipse at 30% 70%,#0a1a2e 0%,#0d1520 40%,#070d18 100%);}
+  #gameScreen::before{content:'';position:absolute;inset:0;top:49px;pointer-events:none;z-index:0;background:radial-gradient(ellipse at 70% 30%,rgba(79,255,176,0.04) 0%,transparent 60%),radial-gradient(ellipse at 20% 80%,rgba(96,180,255,0.05) 0%,transparent 55%),radial-gradient(ellipse at 80% 80%,rgba(170,136,255,0.04) 0%,transparent 50%);}
+
+  /* Animated background behind canvas */
+  #gameBg{position:absolute;inset:0;top:49px;pointer-events:none;z-index:0;overflow:hidden;}
+  .bg-xo{position:absolute;font-family:var(--pixel);font-size:22px;opacity:0;animation:bg-xo-float linear infinite;pointer-events:none;}
+  @keyframes bg-xo-float{0%{transform:translateY(60px);opacity:0;}15%{opacity:0.18;}70%{opacity:0.1;}100%{transform:translateY(-80px);opacity:0;}}
+
+  .game-header{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(13,13,24,0.98);border-bottom:1px solid var(--border);position:absolute;top:0;z-index:100;backdrop-filter:blur(10px);flex-shrink:0;}
+  .header-logo{font-family:var(--pixel);font-size:10px;color:var(--accent);}
+  .user-info{display:flex;align-items:center;gap:8px;font-size:12px;}
+  .user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--accent);}
+  .header-btns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+  .btn-small{padding:5px 10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--body);font-size:11px;cursor:pointer;border-radius:2px;transition:all 0.2s;white-space:nowrap;}
+  .btn-small:hover{border-color:var(--accent2);color:var(--accent2);}
+  .btn-small.admin{border-color:#ffaa00;color:#ffaa00;}
+  .btn-small.admin:hover{background:rgba(255,170,0,0.1);}
+  .btn-small.shop-btn{border-color:var(--gold);color:var(--gold);}
+  .btn-small.shop-btn:hover{background:rgba(255,200,66,0.1);}
+  .btn-small.mail-btn{border-color:var(--accent3);color:var(--accent3);position:relative;}
+  .btn-small.mail-btn:hover{background:rgba(96,180,255,0.1);}
+  .btn-small.pause-btn{border-color:#aa88ff;color:#aa88ff;}
+  .btn-small.pause-btn:hover{background:rgba(170,136,255,0.1);}
+  .mail-dot{position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:var(--accent2);border-radius:50%;display:none;}
+
+  .game-wrapper{position:absolute;inset:0;top:49px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;z-index:1;}
+  .canvas-container{position:relative;display:inline-block;line-height:0;max-width:100%;}
+  .canvas-pause-btn{position:absolute;top:6px;right:6px;z-index:50;padding:5px 9px;background:rgba(13,13,24,0.85);border:1px solid #aa88ff;color:#aa88ff;font-size:13px;cursor:pointer;border-radius:2px;transition:all 0.2s;backdrop-filter:blur(4px);line-height:1;}
+  .canvas-pause-btn:hover{background:rgba(170,136,255,0.2);}
+
+  .stats-bar{display:flex;gap:0;font-family:var(--pixel);font-size:9px;background:rgba(13,13,24,0.85);border:1px solid var(--border);border-radius:3px;margin-bottom:8px;overflow:hidden;flex-shrink:0;}
+  .stat{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 14px;border-right:1px solid var(--border);}
+  .stat:last-child{border-right:none;}
+  .stat-label{color:var(--muted);font-size:7px;letter-spacing:1px;}
+  .stat-value{color:var(--accent);}
+  .stat-value.hp{color:var(--accent2);letter-spacing:2px;}
+  .stat-value.level{color:var(--accent3);}
+  .stat-value.coins{color:var(--gold);}
+
+  #gameCanvas{border:1px solid rgba(79,255,176,0.2);border-radius:3px;box-shadow:0 0 0 1px rgba(79,255,176,0.04),0 8px 40px rgba(0,0,0,0.7);cursor:none;display:block;max-width:100%;max-height:calc(100vh - 155px);image-rendering:pixelated;}
+  .controls-hint{font-family:var(--pixel);font-size:7px;color:var(--muted);text-align:center;margin-top:6px;line-height:2;}
+  .controls-hint span{color:var(--accent);}
+
+  /* pause overlay */
+  #pauseOverlay{display:none;position:absolute;inset:0;top:49px;align-items:center;justify-content:center;background:rgba(0,0,0,0.72);z-index:150;}
+  #pauseOverlay.visible{display:flex;flex-direction:column;gap:16px;align-items:center;}
+  .pause-title{font-family:var(--pixel);font-size:20px;color:#aa88ff;text-shadow:0 0 20px rgba(170,136,255,0.6);}
+  .pause-resume-btn{font-family:var(--pixel);font-size:9px;padding:14px 28px;background:transparent;border:2px solid #aa88ff;color:#aa88ff;cursor:pointer;border-radius:3px;transition:all 0.2s;}
+  .pause-resume-btn:hover{background:rgba(170,136,255,0.15);}
+
+  /* game over */
+  #gameOverOverlay{display:none;position:absolute;inset:0;top:49px;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,0.8);z-index:200;animation:fadeIn 0.3s ease;}
+  #gameOverOverlay.visible{display:flex;}
+  .go-title{font-family:var(--pixel);font-size:22px;color:var(--accent2);text-shadow:0 0 30px rgba(255,77,125,0.8);margin-bottom:14px;animation:go-pulse 1s ease infinite;}
+  @keyframes go-pulse{0%,100%{text-shadow:0 0 30px rgba(255,77,125,0.7);}50%{text-shadow:0 0 50px rgba(255,77,125,1),0 0 80px rgba(255,77,125,0.5);}}
+  .go-score{font-family:var(--pixel);font-size:11px;color:var(--accent);margin-bottom:22px;}
+  .go-restart{font-size:44px;cursor:pointer;animation:bounce 1s ease infinite;filter:drop-shadow(0 0 12px rgba(79,255,176,0.5));background:none;border:none;transition:transform 0.15s;}
+  .go-restart:hover{transform:scale(1.2) rotate(20deg);}
+  .go-hint{font-family:var(--pixel);font-size:7px;color:var(--muted);margin-top:10px;}
+
+  .save-toast{position:fixed;bottom:16px;right:16px;background:var(--surface);border:1px solid var(--accent);color:var(--accent);font-family:var(--pixel);font-size:7px;padding:8px 14px;border-radius:2px;opacity:0;transform:translateY(8px);transition:all 0.3s;pointer-events:none;z-index:2000;}
+  .save-toast.show{opacity:1;transform:translateY(0);}
+
+  /* ═══ MODAL BASE ═══ */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:5000;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+
+  /* ═══ SHOP ═══ */
+  .shop-modal{background:var(--surface);border:1px solid var(--gold);border-top:3px solid var(--gold);padding:28px 24px;max-width:480px;width:calc(100% - 32px);border-radius:3px;box-shadow:0 0 60px rgba(255,200,66,0.12);max-height:90vh;overflow-y:auto;}
+  .shop-title{font-family:var(--pixel);font-size:11px;color:var(--gold);margin-bottom:4px;}
+  .shop-coins-display{font-family:var(--pixel);font-size:9px;color:var(--gold);margin-bottom:20px;opacity:0.8;}
+  .shop-section{margin-bottom:20px;}
+  .shop-section-title{font-family:var(--pixel);font-size:8px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;}
+  .shop-items{display:flex;flex-wrap:wrap;gap:8px;}
+  .shop-item{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:3px;padding:10px 14px;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:80px;font-family:var(--body);font-size:12px;text-align:center;}
+  .shop-item:hover{border-color:var(--gold);background:rgba(255,200,66,0.06);}
+  .shop-item.owned{border-color:var(--accent);background:rgba(79,255,176,0.06);cursor:default;}
+  .shop-item.equipped{border-color:var(--accent);background:rgba(79,255,176,0.12);box-shadow:0 0 12px rgba(79,255,176,0.15);}
+  .shop-item .item-icon{font-size:22px;}
+  .shop-item .item-name{font-size:11px;color:var(--text);}
+  .shop-item .item-price{font-family:var(--pixel);font-size:8px;color:var(--gold);}
+  .shop-item.owned .item-price,.shop-item.equipped .item-price{color:var(--accent);}
+  .shop-close{display:block;width:100%;padding:12px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--body);font-size:14px;cursor:pointer;border-radius:2px;margin-top:8px;transition:all 0.2s;}
+  .shop-close:hover{border-color:var(--accent2);color:var(--accent2);}
+
+  /* ═══ MAIL MODAL ═══ */
+  .mail-modal{background:var(--surface);border:1px solid var(--accent3);border-top:3px solid var(--accent3);padding:28px 24px;max-width:500px;width:calc(100% - 32px);border-radius:3px;box-shadow:0 0 60px rgba(96,180,255,0.1);max-height:85vh;overflow-y:auto;}
+  .mail-title{font-family:var(--pixel);font-size:10px;color:var(--accent3);margin-bottom:20px;text-align:center;}
+  .ann-item{background:rgba(96,180,255,0.06);border:1px solid rgba(96,180,255,0.2);border-left:3px solid var(--accent3);border-radius:2px;padding:14px 16px;margin-bottom:10px;}
+  .ann-item-msg{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:6px;}
+  .ann-item-date{font-size:10px;color:var(--muted);}
+  .ann-item-private{background:rgba(255,200,66,0.06);border-color:rgba(255,200,66,0.3);border-left-color:var(--gold);}
+  .ann-item-private .ann-item-date::before{content:'👤 Özel · ';}
+  .no-ann{text-align:center;color:var(--muted);font-size:13px;padding:32px 0;}
+  .mail-close{display:block;width:100%;padding:11px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--body);font-size:14px;cursor:pointer;border-radius:2px;margin-top:12px;transition:all 0.2s;}
+  .mail-close:hover{border-color:var(--accent2);color:var(--accent2);}
+
+  /* ═══ ADMIN ═══ */
+  #adminScreen{background:radial-gradient(ellipse at 50% 0%,#1a0a00 0%,var(--bg) 70%);align-items:stretch;justify-content:flex-start;padding:0;overflow-y:auto;}
+  .admin-header{background:var(--surface);border-bottom:2px solid #ffaa00;padding:16px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .admin-title{font-family:var(--pixel);font-size:12px;color:#ffaa00;}
+  .admin-back{margin-left:auto;padding:8px 18px;background:transparent;border:1px solid #ffaa00;color:#ffaa00;font-family:var(--body);font-size:13px;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+  .admin-back:hover{background:rgba(255,170,0,0.1);}
+  .admin-content{padding:24px;flex:1;overflow-y:auto;max-width:1100px;margin:0 auto;width:100%;}
+  .admin-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;}
+  .admin-stat-card{background:var(--surface);border:1px solid var(--border);border-top:2px solid #ffaa00;padding:18px;border-radius:2px;}
+  .admin-stat-card .num{font-family:var(--pixel);font-size:22px;color:#ffaa00;margin-bottom:4px;}
+  .admin-stat-card .lbl{color:var(--muted);font-size:12px;}
+  .admin-section{margin-bottom:28px;}
+  .admin-section-title{font-family:var(--pixel);font-size:9px;color:#ffaa00;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,170,0,0.2);}
+  .announcement-panel{background:rgba(255,77,125,0.05);border:1px solid rgba(255,77,125,0.25);border-radius:3px;padding:18px;margin-bottom:24px;}
+  .announcement-form{display:flex;flex-direction:column;gap:10px;}
+  .ann-input,.ann-select{padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:var(--text);font-family:var(--body);font-size:13px;border-radius:2px;outline:none;width:100%;}
+  .ann-input:focus,.ann-select:focus{border-color:#ff4d7d;}
+  .ann-textarea{padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:var(--text);font-family:var(--body);font-size:13px;border-radius:2px;outline:none;width:100%;min-height:80px;resize:vertical;}
+  .ann-textarea:focus{border-color:#ff4d7d;}
+  .ann-send-btn{padding:12px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-family:var(--body);font-size:14px;font-weight:600;cursor:pointer;border-radius:2px;transition:all 0.2s;align-self:flex-start;min-width:140px;}
+  .ann-send-btn:hover{background:rgba(255,77,125,0.1);}
+  .coin-send-panel{background:rgba(255,200,66,0.05);border:1px solid rgba(255,200,66,0.25);border-radius:3px;padding:18px;margin-bottom:24px;}
+  .coin-send-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+  .coin-input{padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:var(--text);font-family:var(--body);font-size:13px;border-radius:2px;outline:none;flex:1;min-width:140px;}
+  .coin-input:focus{border-color:var(--gold);}
+  .coin-send-btn{padding:10px 20px;background:transparent;border:1px solid var(--gold);color:var(--gold);font-family:var(--body);font-size:14px;font-weight:600;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+  .coin-send-btn:hover{background:rgba(255,200,66,0.1);}
+  .users-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .users-table th{font-family:var(--pixel);font-size:7px;color:#ffaa00;text-align:left;padding:10px 12px;border-bottom:1px solid #ffaa00;white-space:nowrap;}
+  .users-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .users-table tr:hover td{background:rgba(255,170,0,0.03);}
+  .user-row-avatar{width:26px;height:26px;border-radius:50%;border:1px solid #ffaa00;vertical-align:middle;margin-right:6px;}
+  .badge{display:inline-block;padding:2px 7px;font-size:9px;border-radius:2px;font-weight:600;}
+  .badge-level{background:rgba(96,180,255,0.15);color:var(--accent3);border:1px solid var(--accent3);}
+  .admin-ann-item{background:rgba(255,200,66,0.04);border:1px solid rgba(255,170,0,0.2);border-left:3px solid #ffaa00;border-radius:2px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;}
+  .admin-ann-item.private-ann{border-left-color:var(--accent3);background:rgba(96,180,255,0.04);}
+  .admin-ann-body{flex:1;min-width:0;}
+  .admin-ann-title{font-family:var(--pixel);font-size:8px;color:#ffaa00;margin-bottom:4px;}
+  .admin-ann-msg{font-size:12px;color:var(--text);line-height:1.5;margin-bottom:4px;}
+  .admin-ann-meta{font-size:10px;color:var(--muted);}
+  .admin-ann-del{padding:4px 10px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-size:10px;cursor:pointer;border-radius:2px;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
+  .admin-ann-del:hover{background:rgba(255,77,125,0.12);}
+  .no-admin-ann{color:var(--muted);font-size:13px;padding:20px 0;text-align:center;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+
+  /* Admin login modal */
+  .admin-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9000;align-items:center;justify-content:center;}
+  .admin-modal-overlay.open{display:flex;}
+  .admin-modal-box{background:#12121a;border:1px solid #ffaa00;border-top:3px solid #ffaa00;padding:32px 28px;max-width:340px;width:90%;border-radius:2px;box-shadow:0 0 40px rgba(255,170,0,0.12);}
+  .admin-modal-title{font-family:var(--pixel);font-size:9px;color:#ffaa00;margin-bottom:20px;text-align:center;line-height:1.8;}
+  .admin-modal-label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;}
+  .admin-modal-input{width:100%;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:var(--text);font-family:var(--body);font-size:14px;border-radius:2px;outline:none;margin-bottom:12px;}
+  .admin-modal-input:focus{border-color:#ffaa00;}
+  .admin-modal-btns{display:flex;gap:10px;margin-top:8px;}
+  .admin-modal-submit{flex:1;padding:12px;background:transparent;border:1px solid #ffaa00;color:#ffaa00;font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;}
+  .admin-modal-cancel{padding:12px 14px;background:transparent;border:1px solid #333355;color:var(--muted);font-family:var(--body);font-size:13px;cursor:pointer;border-radius:2px;}
+  .admin-modal-error{color:var(--accent2);font-size:11px;margin-top:10px;text-align:center;display:none;}
+
+  /* ═══ 2X EVENT BANNER ═══ */
+  .event-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:8000;background:linear-gradient(90deg,#ff4d00,#ffc842,#ff4d00);background-size:200% 100%;animation:event-slide 2s linear infinite;padding:5px 12px;text-align:center;font-family:var(--pixel);font-size:8px;color:#000;letter-spacing:1px;cursor:pointer;}
+  @keyframes event-slide{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
+  .event-banner.active{display:block;}
+  #gameScreen.event-active .game-header{top:26px;}
+  #gameScreen.event-active .game-wrapper{top:75px;}
+  #gameScreen.event-active #gameBg{top:75px;}
+  #gameScreen.event-active #pauseOverlay{top:75px;}
+  #gameScreen.event-active #gameOverOverlay{top:75px;}
+
+  /* ═══ PLAYER DETAIL MODAL ═══ */
+  .player-detail-modal{background:var(--surface);border:1px solid #ffaa00;border-top:3px solid #ffaa00;padding:24px;max-width:520px;width:calc(100% - 32px);border-radius:3px;box-shadow:0 0 60px rgba(255,170,0,0.12);max-height:88vh;overflow-y:auto;}
+  .player-detail-title{font-family:var(--pixel);font-size:9px;color:#ffaa00;margin-bottom:16px;text-align:center;}
+  .player-detail-avatar{width:52px;height:52px;border-radius:50%;border:2px solid #ffaa00;display:block;margin:0 auto 12px;}
+  .player-detail-name{text-align:center;font-size:15px;font-weight:700;margin-bottom:4px;}
+  .player-detail-email{text-align:center;font-size:11px;color:var(--muted);margin-bottom:16px;}
+  .player-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+  .player-detail-stat{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:2px;padding:10px 12px;}
+  .player-detail-stat .pds-label{font-size:10px;color:var(--muted);margin-bottom:3px;}
+  .player-detail-stat .pds-value{font-family:var(--pixel);font-size:10px;color:#ffaa00;}
+  .player-detail-items{margin-bottom:16px;}
+  .player-detail-items-title{font-family:var(--pixel);font-size:8px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;}
+  .player-items-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .player-item-badge{background:rgba(79,255,176,0.08);border:1px solid rgba(79,255,176,0.25);border-radius:2px;padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:4px;}
+  .player-item-badge.equipped-badge{border-color:var(--accent);background:rgba(79,255,176,0.15);}
+  .player-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .pda-btn{flex:1;min-width:120px;padding:10px;background:transparent;font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+  .pda-btn.reward{border:1px solid var(--gold);color:var(--gold);}
+  .pda-btn.reward:hover{background:rgba(255,200,66,0.1);}
+  .pda-btn.reset{border:1px solid #ff4d7d;color:#ff4d7d;}
+  .pda-btn.reset:hover{background:rgba(255,77,125,0.1);}
+  .pda-btn.edit-score{border:1px solid var(--accent3);color:var(--accent3);}
+  .pda-btn.edit-score:hover{background:rgba(96,180,255,0.1);}
+  .pda-reward-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .pda-reward-input{flex:1;padding:9px 10px;background:#0a0a0f;border:1px solid #333355;color:var(--text);font-family:var(--body);font-size:13px;border-radius:2px;outline:none;}
+  .pda-reward-input:focus{border-color:var(--gold);}
+  .pda-status{font-size:12px;margin-top:6px;display:none;}
+  .player-detail-close{display:block;width:100%;padding:11px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--body);font-size:14px;cursor:pointer;border-radius:2px;margin-top:4px;transition:all 0.2s;}
+  .player-detail-close:hover{border-color:var(--accent2);color:var(--accent2);}
+
+  /* ═══ SCORE EDIT MODAL ═══ */
+  .score-edit-modal{background:var(--surface);border:1px solid var(--accent3);border-top:3px solid var(--accent3);padding:28px 24px;max-width:360px;width:calc(100% - 32px);border-radius:3px;box-shadow:0 0 40px rgba(96,180,255,0.12);}
+  .score-edit-title{font-family:var(--pixel);font-size:9px;color:var(--accent3);margin-bottom:16px;text-align:center;}
+  .score-edit-input{width:100%;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:var(--text);font-family:var(--body);font-size:15px;border-radius:2px;outline:none;margin-bottom:12px;}
+  .score-edit-input:focus{border-color:var(--accent3);}
+  .score-edit-btns{display:flex;gap:10px;}
+  .score-edit-save{flex:1;padding:11px;background:transparent;border:1px solid var(--accent3);color:var(--accent3);font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;}
+  .score-edit-cancel{padding:11px 14px;background:transparent;border:1px solid #333355;color:var(--muted);font-family:var(--body);font-size:13px;cursor:pointer;border-radius:2px;}
+  .score-edit-del{flex:1;padding:11px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;}
+
+  /* ═══ EVENT PANEL (admin) ═══ */
+  .event-panel{background:rgba(255,200,66,0.05);border:1px solid rgba(255,200,66,0.3);border-radius:3px;padding:18px;margin-bottom:24px;}
+  .event-panel-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+  .event-hours-input{padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:var(--text);font-family:var(--body);font-size:13px;border-radius:2px;outline:none;width:120px;}
+  .event-hours-input:focus{border-color:var(--gold);}
+  .event-start-btn{padding:10px 20px;background:transparent;border:1px solid var(--gold);color:var(--gold);font-family:var(--body);font-size:14px;font-weight:600;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+  .event-start-btn:hover{background:rgba(255,200,66,0.1);}
+  .event-stop-btn{padding:10px 20px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-family:var(--body);font-size:14px;font-weight:600;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+  .event-stop-btn:hover{background:rgba(255,77,125,0.1);}
+  .event-status-text{font-size:12px;color:var(--gold);margin-top:8px;}
+
+  @media(orientation:portrait){
+    #gameCanvas{width:100%!important;height:auto!important;max-height:calc(100vw*0.75)!important;}
+    .stats-bar{font-size:7px;}.stat{padding:6px 8px;}
+    .game-logo{font-size:20px;}.login-card{padding:32px 20px;}
+    .header-logo{font-size:8px;}#headerName{display:none;}
+  }
+  @media(orientation:landscape) and (max-height:500px){
+    .game-wrapper{padding:3px;}.stats-bar{margin-bottom:3px;}
+    #gameCanvas{max-height:calc(100vh - 100px)!important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginScreen" class="screen active">
+  <div class="login-bg">
+    <canvas id="fogCanvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.7;"></canvas>
+  </div>
+  <div class="login-particles" id="loginParticles"></div>
+  <!-- XO symbols on login bg -->
+  <span class="xo-sym" style="left:6%;font-size:28px;color:#ffffff;animation-duration:8s;animation-delay:0s;">✕</span>
+  <span class="xo-sym" style="left:18%;font-size:20px;color:rgba(96,180,255,0.5);animation-duration:11s;animation-delay:1.5s;">○</span>
+  <span class="xo-sym" style="left:32%;font-size:24px;color:#ffffff;animation-duration:9s;animation-delay:3s;">✕</span>
+  <span class="xo-sym" style="left:52%;font-size:18px;color:rgba(255,77,125,0.5);animation-duration:12s;animation-delay:0.5s;">○</span>
+  <span class="xo-sym" style="left:68%;font-size:30px;color:#ffffff;animation-duration:10s;animation-delay:2s;">✕</span>
+  <span class="xo-sym" style="left:80%;font-size:22px;color:rgba(79,255,176,0.5);animation-duration:7s;animation-delay:4s;">○</span>
+  <span class="xo-sym" style="left:92%;font-size:26px;color:#ffffff;animation-duration:13s;animation-delay:1s;">✕</span>
+  <span class="xo-sym" style="left:43%;font-size:16px;color:rgba(255,200,66,0.45);animation-duration:9s;animation-delay:5s;">○</span>
+  <span class="xo-sym" style="left:11%;font-size:18px;color:#ffffff;animation-duration:14s;animation-delay:2.5s;">✕</span>
+  <span class="xo-sym" style="left:25%;font-size:26px;color:rgba(170,136,255,0.5);animation-duration:10s;animation-delay:6s;">○</span>
+  <span class="xo-sym" style="left:58%;font-size:20px;color:#ffffff;animation-duration:8s;animation-delay:3.5s;">✕</span>
+  <span class="xo-sym" style="left:74%;font-size:14px;color:rgba(96,180,255,0.45);animation-duration:11s;animation-delay:7s;">○</span>
+  <span class="xo-sym" style="left:87%;font-size:32px;color:#ffffff;animation-duration:12s;animation-delay:0.8s;">✕</span>
+  <span class="xo-sym" style="left:37%;font-size:22px;color:rgba(255,77,125,0.45);animation-duration:9s;animation-delay:4.5s;">○</span>
+  <span class="xo-sym" style="left:2%;font-size:22px;color:#ffffff;animation-duration:15s;animation-delay:1.2s;">✕</span>
+  <span class="xo-sym" style="left:63%;font-size:28px;color:rgba(79,255,176,0.45);animation-duration:10s;animation-delay:5.5s;">○</span>
+
+  <div class="login-card">
+    <span class="pixel-char">🕹️</span>
+    <div class="game-logo">PIXEL<span>RUN</span></div>
+    <p class="tagline">koş • zıpla • kazan</p>
+    <!-- GOOGLE BTN - UNTOUCHED -->
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Gmail ile Giriş Yap
+    </button>
+    <p id="loginErrorMsg" style="margin-top:14px;font-size:11px;color:#ff4d7d;display:none;line-height:1.6;"></p>
+  </div>
+</div>
+
+<!-- ═══ GAME SCREEN ═══ -->
+<div id="gameScreen" class="screen">
+  <!-- Animated bg behind canvas -->
+  <div id="gameBg">
+    <span class="bg-xo" style="left:3%;color:rgba(79,255,176,0.12);animation-duration:12s;animation-delay:0s;">✕</span>
+    <span class="bg-xo" style="left:15%;color:rgba(96,180,255,0.1);animation-duration:9s;animation-delay:2s;">○</span>
+    <span class="bg-xo" style="left:28%;color:rgba(255,200,66,0.08);animation-duration:14s;animation-delay:4s;">✕</span>
+    <span class="bg-xo" style="left:72%;color:rgba(255,77,125,0.1);animation-duration:11s;animation-delay:1s;">○</span>
+    <span class="bg-xo" style="left:85%;color:rgba(170,136,255,0.09);animation-duration:10s;animation-delay:3s;">✕</span>
+    <span class="bg-xo" style="left:93%;color:rgba(79,255,176,0.08);animation-duration:13s;animation-delay:5s;">○</span>
+  </div>
+
+  <div class="game-header">
+    <div class="header-logo">PIXEL<span style="color:var(--accent2)">RUN</span></div>
+    <div class="user-info">
+      <img id="headerAvatar" class="user-avatar" src="" alt="">
+      <span id="headerName" style="font-size:12px;"></span>
+    </div>
+    <div class="header-btns">
+      <button class="btn-small shop-btn" onclick="openShop()">🛒</button>
+      <button class="btn-small mail-btn" id="mailBtn" onclick="openMail()">✉️<span class="mail-dot" id="mailDot"></span></button>
+      <button class="btn-small" id="supportBtn" onclick="openSupportModal()" style="border-color:#60b4ff;color:#60b4ff;position:relative;" title="Müşteri Destek">🎧<span id="supportDot" style="display:none;position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:#ff4d7d;border-radius:50%;"></span></button>
+      <button id="adminDirectBtn" class="btn-small admin" onclick="openAdminDirect()" style="display:none;">👑</button>
+      <button class="btn-small" onclick="doSignOut()">Çıkış</button>
+    </div>
+  </div>
+
+  <div class="game-wrapper" id="gameWrapper">
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-label">PUAN</div><div class="stat-value" id="scoreDisplay">0</div></div>
+      <div class="stat"><div class="stat-label">EN YÜKSEK</div><div class="stat-value" id="highScoreDisplay">0</div></div>
+      <div class="stat"><div class="stat-label">LEVEL</div><div class="stat-value level" id="levelDisplay">1</div></div>
+      <div class="stat"><div class="stat-label">CAN</div><div class="stat-value hp" id="hpDisplay">❤️❤️❤️</div></div>
+      <div class="stat"><div class="stat-label">KOİN</div><div class="stat-value coins" id="totalCoinsDisplay">0</div></div>
+    </div>
+    <div class="canvas-container">
+      <canvas id="gameCanvas" width="660" height="400"></canvas>
+      <button class="canvas-pause-btn" id="pauseBtn" onclick="togglePause()">⏸</button>
+    </div>
+    <div class="controls-hint"><span>SPACE/↑</span> Zıpla &nbsp;|&nbsp; <span>→←</span> Hareket &nbsp;|&nbsp; <span>P</span> Durdur &nbsp;|&nbsp; Mobil: Dokun</div>
+  </div>
+
+  <!-- Pause overlay -->
+  <div id="pauseOverlay">
+    <div class="pause-title">⏸ DURAKLATILDI</div>
+    <button class="pause-resume-btn" onclick="togglePause()">▶ DEVAM ET</button>
+  </div>
+
+  <!-- Game Over overlay -->
+  <div id="gameOverOverlay">
+    <div class="go-title">OYUN BİTTİ</div>
+    <div class="go-score" id="goScoreText">PUAN: 0</div>
+    <button class="go-restart" onclick="restartFromOverlay()" title="Yeniden Dene">🔄</button>
+    <div class="go-hint">Tıkla veya SPACE</div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN LOGIN MODAL ═══ -->
+<div id="adminModal" class="admin-modal-overlay">
+  <div class="admin-modal-box">
+    <div class="admin-modal-title">YÖNETİCİ<br>GİRİŞ ARAYÜZÜ</div>
+    <label class="admin-modal-label">E-POSTA</label>
+    <input id="adminEmailInput" class="admin-modal-input" type="email" placeholder="admin@gmail.com">
+    <label class="admin-modal-label">ŞİFRE</label>
+    <input id="adminPassInput" class="admin-modal-input" type="password" placeholder="••••••••">
+    <div class="admin-modal-btns">
+      <button class="admin-modal-submit" onclick="checkAdminLogin()">Giriş</button>
+      <button class="admin-modal-cancel" onclick="closeAdminModal()">İptal</button>
+    </div>
+    <div id="adminModalError" class="admin-modal-error">Hatalı email veya şifre!</div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN SCREEN ═══ -->
+<div id="adminScreen" class="screen">
+  <div class="admin-header">
+    <span style="font-size:18px">👑</span>
+    <div class="admin-title">ADMİN PANELİ</div>
+    <button class="admin-back" onclick="backToGame()">← Oyuna Dön</button>
+  </div>
+  <div class="admin-content">
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card"><div class="num" id="totalUsers">—</div><div class="lbl">Toplam Oyuncu</div></div>
+      <div class="admin-stat-card"><div class="num" id="totalSessions">—</div><div class="lbl">Toplam Oturum</div></div>
+      <div class="admin-stat-card"><div class="num" id="topScore">—</div><div class="lbl">En Yüksek Puan</div></div>
+    </div>
+
+    <!-- 2x Para Etkinliği -->
+    <div class="admin-section">
+      <div class="admin-section-title">🔥 2X PARA ETKİNLİĞİ</div>
+      <div class="event-panel">
+        <div class="event-panel-row">
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">ETKİNLİK SÜRESİ (SAAT)</label>
+            <input id="eventHoursInput" type="number" min="1" max="72" value="2" class="event-hours-input" placeholder="Saat">
+          </div>
+          <button id="eventStartBtn" class="event-start-btn" onclick="startDoubleEvent()">🚀 ETKİNLİĞİ BAŞLAT</button>
+          <button id="eventStopBtn" class="event-stop-btn" style="display:none;" onclick="stopDoubleEvent()">⛔ ETKİNLİĞİ DURDUR</button>
+        </div>
+        <div id="eventAdminStatus" class="event-status-text"></div>
+      </div>
+    </div>
+
+    <!-- Duyuru Gönder -->
+    <div class="admin-section">
+      <div class="admin-section-title">📢 DUYURU GÖNDER</div>
+      <div class="announcement-panel">
+        <div class="announcement-form">
+          <select id="annTarget" class="ann-select">
+            <option value="all">🌐 Herkese Gönder</option>
+          </select>
+          <input id="annTitle" class="ann-input" type="text" placeholder="Duyuru başlığı...">
+          <textarea id="annMessage" class="ann-textarea" placeholder="Duyuru mesajını buraya yazın..."></textarea>
+          <button class="ann-send-btn" onclick="sendAnnouncement()">📢 Duyuru Gönder</button>
+          <div id="annStatus" style="font-size:12px;color:var(--accent);display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gönderilen Duyurular -->
+    <div class="admin-section">
+      <div class="admin-section-title">📋 GÖNDERİLEN DUYURULAR</div>
+      <div id="adminAnnList" style="margin-bottom:8px;"><div class="loading-spinner"><div class="spinner"></div> Yükleniyor...</div></div>
+    </div>
+
+    <!-- Koin Gönder -->
+    <div class="admin-section">
+      <div class="admin-section-title">💰 KOİN GÖNDER</div>
+      <div class="coin-send-panel">
+        <div class="coin-send-form">
+          <select id="coinTarget" class="coin-input" style="flex:2;">
+            <option value="">Oyuncu Seç...</option>
+            <option value="ALL">🌐 Herkese Gönder</option>
+          </select>
+          <input id="coinAmount" type="number" min="1" max="99999" class="coin-input" placeholder="Miktar" style="flex:1;min-width:100px;">
+          <button class="coin-send-btn" onclick="sendCoinsToUser()">💰 Gönder</button>
+        </div>
+        <div id="coinSendStatus" style="font-size:12px;color:var(--accent);margin-top:8px;display:none;"></div>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">TÜM OYUNCULAR</div>
+      <div id="usersTableWrapper"><div class="loading-spinner"><div class="spinner"></div> Yükleniyor...</div></div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">🎧 DESTEK MESAJLARı</div>
+      <div style="margin-bottom:10px;">
+        <button onclick="openAdminSupportModal()" style="padding:10px 20px;background:transparent;border:1px solid #60b4ff;color:#60b4ff;font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer;border-radius:2px;transition:all 0.2s;" onmouseover="this.style.background='rgba(96,180,255,0.1)'" onmouseout="this.style.background='transparent'">🎧 Destek Panelini Aç <span id="adminSupportBadge" style="display:none;background:#ff4d7d;color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:4px;"></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SHOP MODAL ═══ -->
+<div id="shopModal" class="modal-overlay">
+  <div class="shop-modal">
+    <div class="shop-title">🛒 DÜKKAN</div>
+    <div class="shop-coins-display">💰 Mevcut Koin: <span id="shopCoinBalance">0</span></div>
+    <div class="shop-section">
+      <div class="shop-section-title">🎨 KARAKTER RENGİ</div>
+      <div class="shop-items" id="shopColors"></div>
+    </div>
+    <div class="shop-section">
+      <div class="shop-section-title">🎩 ŞAPKA</div>
+      <div class="shop-items" id="shopHats"></div>
+    </div>
+    <div class="shop-section">
+      <div class="shop-section-title">🕶️ GÖZLÜK</div>
+      <div class="shop-items" id="shopGlasses"></div>
+    </div>
+    <div id="shopMessage" style="font-size:12px;color:var(--accent2);text-align:center;margin-bottom:8px;display:none;"></div>
+    <button class="shop-close" onclick="closeShop()">✕ Kapat</button>
+  </div>
+</div>
+
+<!-- ═══ MAIL MODAL ═══ -->
+<div id="mailModal" class="modal-overlay">
+  <div class="mail-modal">
+    <div class="mail-title">✉️ DUYURULAR</div>
+    <div id="mailContent"></div>
+    <button class="mail-close" onclick="closeMail()">✕ Kapat</button>
+  </div>
+</div>
+
+<!-- ═══ BAN MODAL ═══ -->
+<div id="banModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9500;align-items:center;justify-content:center;">
+  <div style="background:#12121a;border:1px solid #ff4d7d;border-top:3px solid #ff4d7d;padding:28px;max-width:360px;width:90%;border-radius:2px;box-shadow:0 0 40px rgba(255,77,125,0.15);">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:9px;color:#ff4d7d;margin-bottom:16px;text-align:center;line-height:1.8;">⛔ KULLANICI BANLA</h2>
+    <p style="font-size:13px;color:#e0e0f0;margin-bottom:14px;text-align:center;"><span id="banTargetName" style="color:#ff4d7d;font-weight:600;"></span></p>
+    <label style="font-size:11px;color:#555570;display:block;margin-bottom:5px;">BAN SÜRESİ (DAKİKA)</label>
+    <input id="banMinutesInput" type="number" min="1" max="99999" value="30" style="width:100%;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:#e0e0f0;font-family:'Outfit',sans-serif;font-size:15px;border-radius:2px;outline:none;margin-bottom:10px;">
+    <label style="font-size:11px;color:#555570;display:block;margin-bottom:5px;">BAN SEBEBİ (opsiyonel)</label>
+    <input id="banReasonInput" type="text" placeholder="Kural ihlali, uygunsuz içerik..." style="width:100%;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:#e0e0f0;font-family:'Outfit',sans-serif;font-size:13px;border-radius:2px;outline:none;margin-bottom:16px;">
+    <div style="display:flex;gap:10px;">
+      <button onclick="applyBan()" style="flex:1;padding:11px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;">⛔ Banla</button>
+      <button onclick="closeBanModal()" style="padding:11px 14px;background:transparent;border:1px solid #333355;color:#555570;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;border-radius:2px;">İptal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MUTE MODAL ═══ -->
+<div id="muteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9500;align-items:center;justify-content:center;">
+  <div style="background:#12121a;border:1px solid #aa88ff;border-top:3px solid #aa88ff;padding:28px;max-width:360px;width:90%;border-radius:2px;box-shadow:0 0 40px rgba(170,136,255,0.15);">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:9px;color:#aa88ff;margin-bottom:16px;text-align:center;line-height:1.8;">🔇 KULLANICI MUTE</h2>
+    <p style="font-size:13px;color:#e0e0f0;margin-bottom:14px;text-align:center;"><span id="muteTargetName" style="color:#aa88ff;font-weight:600;"></span></p>
+    <label style="font-size:11px;color:#555570;display:block;margin-bottom:5px;">MUTE SÜRESİ (DAKİKA)</label>
+    <input id="muteMinutesInput" type="number" min="1" max="99999" value="10" style="width:100%;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:#e0e0f0;font-family:'Outfit',sans-serif;font-size:15px;border-radius:2px;outline:none;margin-bottom:10px;">
+    <label style="font-size:11px;color:#555570;display:block;margin-bottom:5px;">MUTE SEBEBİ (opsiyonel)</label>
+    <input id="muteReasonInput" type="text" placeholder="Uygunsuz içerik, küfür..." style="width:100%;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:#e0e0f0;font-family:'Outfit',sans-serif;font-size:13px;border-radius:2px;outline:none;margin-bottom:16px;">
+    <div style="display:flex;gap:10px;">
+      <button onclick="applyMute()" style="flex:1;padding:11px;background:transparent;border:1px solid #aa88ff;color:#aa88ff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;">🔇 Mute At</button>
+      <button onclick="closeMuteModal()" style="padding:11px 14px;background:transparent;border:1px solid #333355;color:#555570;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;border-radius:2px;">İptal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DESTEK CHAT MODAL ═══ -->
+<div id="supportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9400;align-items:center;justify-content:center;">
+  <div style="background:#12121a;border:1px solid #60b4ff;border-top:3px solid #60b4ff;padding:0;max-width:480px;width:calc(100% - 32px);border-radius:3px;box-shadow:0 0 60px rgba(96,180,255,0.12);max-height:90vh;display:flex;flex-direction:column;">
+    <div style="padding:18px 20px;border-bottom:1px solid #1e1e30;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <span style="font-size:24px;">🎧</span>
+      <div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:#60b4ff;line-height:1.8;">MÜŞTERİ DESTEK</div>
+        <div style="font-size:10px;color:var(--muted);">Sorularını anonim gönder, admin yanıtlasın</div>
+      </div>
+      <button onclick="closeSupportModal()" style="margin-left:auto;background:transparent;border:none;color:#555570;font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="background:rgba(255,77,125,0.07);border:1px solid rgba(255,77,125,0.2);border-radius:2px;margin:12px 16px 0;padding:10px 12px;font-size:11px;color:#ff6b8a;line-height:1.6;">
+      ⚠️ <strong>Uyarı:</strong> Küfür, argo veya hakaret içeren mesajlar <strong>ceza / ban</strong> ile sonuçlanabilir. Lütfen saygılı olun.
+    </div>
+    <div id="supportChatArea" style="flex:1;overflow-y:auto;padding:12px 16px;min-height:200px;max-height:340px;display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">Yükleniyor...</div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid #1e1e30;flex-shrink:0;">
+      <div id="supportMutedWarning" style="display:none;background:rgba(170,136,255,0.1);border:1px solid rgba(170,136,255,0.3);border-radius:2px;padding:8px 12px;font-size:11px;color:#aa88ff;margin-bottom:8px;">🔇 Şu an mute cezasındasınız. Süre dolunca mesaj gönderebilirsiniz.</div>
+      <div style="display:flex;gap:8px;">
+        <input id="supportInput" type="text" maxlength="300" placeholder="Sorunuzu yazın..." style="flex:1;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:#e0e0f0;font-family:'Outfit',sans-serif;font-size:13px;border-radius:2px;outline:none;" onkeydown="if(event.key==='Enter')sendSupportMsg()">
+        <button onclick="sendSupportMsg()" style="padding:10px 16px;background:transparent;border:1px solid #60b4ff;color:#60b4ff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;">Gönder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN DESTEK PANEL MODAL ═══ -->
+<div id="adminSupportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9400;align-items:center;justify-content:center;">
+  <div style="background:#12121a;border:1px solid #60b4ff;border-top:3px solid #60b4ff;padding:0;max-width:600px;width:calc(100% - 32px);border-radius:3px;box-shadow:0 0 60px rgba(96,180,255,0.12);max-height:92vh;display:flex;flex-direction:column;">
+    <div style="padding:18px 20px;border-bottom:1px solid #1e1e30;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <span style="font-size:22px;">🎧</span>
+      <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:#60b4ff;line-height:1.8;">DESTEK MESAJLARı - ADMİN</div>
+      <button onclick="closeAdminSupportModal()" style="margin-left:auto;background:transparent;border:none;color:#555570;font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="adminSupportList" style="flex:1;overflow-y:auto;padding:12px 16px;min-height:200px;">
+      <div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">Yükleniyor...</div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid #1e1e30;flex-shrink:0;">
+      <div id="adminReplyTarget" style="font-size:11px;color:var(--muted);margin-bottom:6px;display:none;"></div>
+      <div style="display:flex;gap:8px;">
+        <input id="adminReplyInput" type="text" maxlength="500" placeholder="Yanıtı yaz ve Enter'a bas..." style="flex:1;padding:10px 12px;background:#0a0a0f;border:1px solid #333355;color:#e0e0f0;font-family:'Outfit',sans-serif;font-size:13px;border-radius:2px;outline:none;" onkeydown="if(event.key==='Enter')sendAdminReply()">
+        <button onclick="sendAdminReply()" style="padding:10px 16px;background:transparent;border:1px solid #ffaa00;color:#ffaa00;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;">Yanıtla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2X EVENT BANNER ═══ -->
+<div id="eventBanner" class="event-banner" onclick="openMail()">
+  🔥 2X PARA ETKİNLİĞİ AKTİF! — Tüm koinler 2 kat! &nbsp;⏰ <span id="eventCountdown"></span> &nbsp;💰
+</div>
+
+<!-- ═══ PLAYER DETAIL MODAL ═══ -->
+<div id="playerDetailModal" class="modal-overlay" style="z-index:9200;">
+  <div class="player-detail-modal">
+    <div class="player-detail-title">👤 OYUNCU DETAYI</div>
+    <img id="pdAvatar" class="player-detail-avatar" src="" alt="" onerror="this.style.display='none'">
+    <div id="pdName" class="player-detail-name"></div>
+    <div id="pdEmail" class="player-detail-email"></div>
+    <div class="player-detail-grid" id="pdStatGrid"></div>
+    <div class="player-detail-items">
+      <div class="player-detail-items-title">🎨 SAHIP OLUNAN EŞYALAR</div>
+      <div id="pdItemsRow"></div>
+    </div>
+    <div class="player-detail-actions">
+      <button class="pda-btn reward" onclick="showRewardInput()">💰 Koin Ödülü Ver</button>
+      <button class="pda-btn reset" onclick="confirmResetBalance()">🔄 Bakiyeyi Sıfırla</button>
+      <button class="pda-btn edit-score" onclick="openScoreEditFromDetail()">✏️ Skor Düzenle</button>
+      <button class="pda-btn" style="background:transparent;border:1px solid #aa88ff;color:#aa88ff;" onclick="openInventoryReset()">🎒 Envanter Sıfırla</button>
+      <button class="pda-btn" style="background:transparent;border:1px solid #aa88ff;color:#aa88ff;" onclick="openMuteFromDetail()">🔇 Mute At</button>
+    </div>
+    <div id="pdInventoryResetRow" style="display:none;margin-top:10px;background:rgba(170,136,255,0.07);border:1px solid rgba(170,136,255,0.25);border-radius:3px;padding:14px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#aa88ff;margin-bottom:10px;">🎒 ENVANTERİ SIFIRLA</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Sil:</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;cursor:pointer;"><input type="checkbox" id="invResetColors"> Tüm Renkler (yeşil hariç)</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;cursor:pointer;"><input type="checkbox" id="invResetHats"> Tüm Şapkalar</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:14px;cursor:pointer;"><input type="checkbox" id="invResetGlasses"> Tüm Gözlükler</label>
+      <div style="display:flex;gap:8px;">
+        <button onclick="applyInventoryReset()" style="flex:1;padding:9px;background:transparent;border:1px solid #aa88ff;color:#aa88ff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;">✅ Uygula</button>
+        <button onclick="document.getElementById('pdInventoryResetRow').style.display='none'" style="padding:9px 13px;background:transparent;border:1px solid #333355;color:#555570;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;border-radius:2px;">İptal</button>
+      </div>
+    </div>
+    <div id="pdRewardRow" style="display:none;">
+      <div class="pda-reward-row">
+        <input id="pdRewardAmount" type="number" min="1" max="999999" class="pda-reward-input" placeholder="Koin miktarı...">
+        <button class="pda-btn reward" style="flex:0;padding:10px 16px;" onclick="sendRewardToPlayer()">Gönder</button>
+      </div>
+    </div>
+    <div id="pdStatus" class="pda-status"></div>
+    <button class="player-detail-close" onclick="closePlayerDetail()">✕ Kapat</button>
+  </div>
+</div>
+
+<!-- ═══ SCORE EDIT MODAL ═══ -->
+<div id="scoreEditModal" class="modal-overlay" style="z-index:9300;">
+  <div class="score-edit-modal">
+    <div class="score-edit-title">✏️ SKOR DÜZENLE</div>
+    <p id="scoreEditTargetName" style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px;"></p>
+    <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">YENİ EN YÜKSEK SKOR</label>
+    <input id="scoreEditInput" type="number" min="0" class="score-edit-input" placeholder="0">
+    <div class="score-edit-btns">
+      <button class="score-edit-del" onclick="clearPlayerScore()">🗑 Skoru Sil (0 Yap)</button>
+      <button class="score-edit-save" onclick="saveEditedScore()">✅ Kaydet</button>
+      <button class="score-edit-cancel" onclick="closeScoreEdit()">İptal</button>
+    </div>
+  </div>
+</div>
+
+<div class="save-toast" id="saveToast">💾 KAYDEDİLDİ</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+  from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, updateDoc,
+         serverTimestamp, increment, Timestamp, query, where, orderBy, addDoc }
+  from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCkBqow7ji5V167TeXwOvyAMcB5ONUMiq8",
+  authDomain: "pixelrun-oyun.firebaseapp.com",
+  projectId: "pixelrun-oyun",
+  storageBucket: "pixelrun-oyun.firebasestorage.app",
+  messagingSenderId: "474490397841",
+  appId: "1:474490397841:web:a4ff07afce609368ce0b30",
+  measurementId: "G-84MKEZ9FSW"
+};
+
+const ADMIN_EMAIL = "aksoyturgut23@gmail.com";
+const ADMIN_PASS  = "blazer2342";
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+let currentUser = null;
+
+// ════ SHOP DATA ════
+const SHOP_COLORS = [
+  {id:'green',  name:'Yeşil',      icon:'🟢', price:0,    color:'#4fffb0', bodyColor:'#00cc66'},
+  {id:'blue',   name:'Mavi',       icon:'🔵', price:350,  color:'#60b4ff', bodyColor:'#3399ee'},
+  {id:'purple', name:'Mor',        icon:'🟣', price:600,  color:'#c77dff', bodyColor:'#9b59b6'},
+  {id:'red',    name:'Kırmızı',    icon:'🔴', price:800,  color:'#ff6b6b', bodyColor:'#cc3333'},
+  {id:'gold',   name:'Altın',      icon:'🟡', price:1500, color:'#ffd700', bodyColor:'#ccaa00'},
+];
+const SHOP_HATS = [
+  {id:'none',   name:'Yok',       icon:'⬜', price:0},
+  {id:'cap',    name:'Şapka',     icon:'🧢', price:500},
+  {id:'crown',  name:'Taç',       icon:'👑', price:2000},
+  {id:'wizard', name:'Sihirbaz',  icon:'🧙', price:1200},
+  {id:'helmet', name:'Kask',      icon:'⛑️', price:750},
+];
+const SHOP_GLASSES = [
+  {id:'none',  name:'Yok',   icon:'⬜',  price:0},
+  {id:'cool',  name:'Cool',  icon:'🕶️', price:600},
+  {id:'nerd',  name:'İnek',  icon:'🤓',  price:450},
+];
+
+const appearance = {colorId:'green', hatId:'none', glassesId:'none'};
+let ownedItems = {colors:['green'], hats:['none'], glasses:['none']};
+
+// ════ AUTH ════
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    window._currentEmail = user.email;
+    // Ban check
+    const banRef  = doc(db, "bans", user.uid);
+    const banSnap = await getDoc(banRef);
+    if (banSnap.exists()) {
+      const ban = banSnap.data();
+      const now = Date.now();
+      if (ban.until && ban.until.toMillis() > now) {
+        const kalan  = Math.ceil((ban.until.toMillis()-now)/60000);
+        const reason = ban.reason ? '\nSebep: '+ban.reason : '';
+        await fbSignOut(auth);
+        showScreen('loginScreen');
+        const el = document.getElementById('loginErrorMsg');
+        el.textContent = '⛔ '+kalan+' dakika boyunca banlısınız.'+reason;
+        el.style.display = 'block';
+        return;
+      } else { await deleteDoc(banRef); }
+    }
+    await ensureUserDoc(user);
+    await loadProgress();
+    await checkMailDot();
+    await checkActiveEvent();
+    showGameScreen(user);
+  } else {
+    currentUser = null;
+    window._currentEmail = null;
+    showScreen('loginScreen');
+  }
+});
+
+async function ensureUserDoc(user) {
+  const ref  = doc(db,"users",user.uid);
+  const snap = await getDoc(ref);
+  // Get IP via public API
+  let userIP = '—';
+  try { const r=await fetch('https://api.ipify.org?format=json'); const j=await r.json(); userIP=j.ip||'—'; } catch(e){}
+  if (!snap.exists()) {
+    await setDoc(ref,{uid:user.uid,email:user.email,displayName:user.displayName,photoURL:user.photoURL,
+      firstLogin:serverTimestamp(),lastSeen:serverTimestamp(),highScore:0,level:1,totalSessions:1,totalCoins:0,
+      totalPlayMinutes:0,lastIP:userIP,
+      ownedColors:['green'],ownedHats:['none'],ownedGlasses:['none'],
+      equippedColor:'green',equippedHat:'none',equippedGlasses:'none'});
+  } else {
+    await updateDoc(ref,{lastSeen:serverTimestamp(),totalSessions:increment(1),
+      displayName:user.displayName,photoURL:user.photoURL,lastIP:userIP});
+  }
+}
+
+async function loadProgress() {
+  const snap = await getDoc(doc(db,"users",currentUser.uid));
+  if (snap.exists()) {
+    const d = snap.data();
+    gameState.highScore  = d.highScore   || 0;
+    gameState.level      = d.level       || 1;
+    gameState.totalCoins = d.totalCoins  || 0;
+    ownedItems.colors    = d.ownedColors  || ['green'];
+    ownedItems.hats      = d.ownedHats    || ['none'];
+    ownedItems.glasses   = d.ownedGlasses || ['none'];
+    appearance.colorId   = d.equippedColor   || 'green';
+    appearance.hatId     = d.equippedHat     || 'none';
+    appearance.glassesId = d.equippedGlasses || 'none';
+    updateHUD();
+  }
+}
+
+async function saveProgress() {
+  if (!currentUser) return;
+  await updateDoc(doc(db,"users",currentUser.uid),{
+    highScore:gameState.highScore, level:gameState.level, totalCoins:gameState.totalCoins,
+    lastSeen:serverTimestamp(), ownedColors:ownedItems.colors, ownedHats:ownedItems.hats,
+    ownedGlasses:ownedItems.glasses, equippedColor:appearance.colorId,
+    equippedHat:appearance.hatId, equippedGlasses:appearance.glassesId
+  });
+  const t=document.getElementById('saveToast');
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ════ GOOGLE SIGN IN — UNTOUCHED ════
+window.signInWithGoogle = async function() {
+  const provider = new GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+  try { await signInWithPopup(auth, provider); }
+  catch (e) { if (e.code !== 'auth/popup-closed-by-user') alert("Giriş başarısız: " + e.code); }
+};
+
+window.doSignOut = async function() { stopGame(); await fbSignOut(auth); };
+
+function showGameScreen(user) {
+  document.getElementById('headerAvatar').src = user.photoURL || '';
+  document.getElementById('headerName').textContent = user.displayName || user.email;
+  const adminBtn = document.getElementById('adminDirectBtn');
+  adminBtn.style.display = (user.email&&user.email.trim().toLowerCase()===ADMIN_EMAIL.trim().toLowerCase()) ? 'inline-flex' : 'none';
+  showScreen('gameScreen');
+  startGame();
+}
+
+// ════ MAIL DOT ════
+async function checkMailDot() {
+  if (!currentUser) return;
+  try {
+    const readSnap = await getDoc(doc(db,"ann_read",currentUser.uid));
+    const readIds  = readSnap.exists() ? (readSnap.data().ids||[]) : [];
+    const allSnap  = await getDocs(collection(db,"announcements"));
+    let unread = 0;
+    allSnap.forEach(d=>{ if(!readIds.includes(d.id)) unread++; });
+    // private
+    const privSnap = await getDocs(query(collection(db,"private_announcements"),
+      where("toUid","==",currentUser.uid), where("read","==",false)));
+    unread += privSnap.size;
+    document.getElementById('mailDot').style.display = unread>0 ? 'block' : 'none';
+  } catch(e){}
+}
+
+// ════ MAIL MODAL ════
+window.openMail = async function() {
+  const content = document.getElementById('mailContent');
+  content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  document.getElementById('mailModal').classList.add('open');
+
+  const readSnap = await getDoc(doc(db,"ann_read",currentUser.uid));
+  const readIds  = readSnap.exists() ? (readSnap.data().ids||[]) : [];
+
+  // Global announcements
+  const allSnap = await getDocs(collection(db,"announcements"));
+  const glAnns  = [];
+  allSnap.forEach(d=>glAnns.push({id:d.id,...d.data()}));
+
+  // Private
+  const privSnap = await getDocs(query(collection(db,"private_announcements"),
+    where("toUid","==",currentUser.uid)));
+  const prAnns = [];
+  privSnap.forEach(d=>prAnns.push({id:d.id,...d.data(),isPrivate:true}));
+
+  // Mark private as read
+  const unreadPriv = prAnns.filter(p=>!p.read);
+  for (const p of unreadPriv) {
+    try { await updateDoc(doc(db,"private_announcements",p.id),{read:true}); } catch(e){}
+  }
+
+  const all = [...glAnns,...prAnns].sort((a,b)=>((b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)));
+
+  if (all.length===0) {
+    content.innerHTML = '<div class="no-ann">📭 Hiç duyuru yok</div>';
+  } else {
+    content.innerHTML = all.map(a=>{
+      const date = a.createdAt ? new Date(a.createdAt.seconds*1000).toLocaleString('tr-TR') : '';
+      const cls  = a.isPrivate ? 'ann-item ann-item-private' : 'ann-item';
+      const ttl  = a.title ? `<div style="font-family:var(--pixel);font-size:8px;color:${a.eventType==='doubleCoins'?'var(--gold)':'var(--accent3)'};margin-bottom:6px;">${a.eventType==='doubleCoins'?'🔥 ':''}${a.title}</div>` : '';
+      return `<div class="${cls}">${ttl}<div class="ann-item-msg">${a.message||a.body||''}</div><div class="ann-item-date">${date}</div></div>`;
+    }).join('');
+  }
+
+  // Mark global as read
+  const newIds = [...new Set([...readIds,...glAnns.map(a=>a.id)])];
+  await setDoc(doc(db,"ann_read",currentUser.uid),{ids:newIds});
+  document.getElementById('mailDot').style.display = 'none';
+};
+window.closeMail = function() { document.getElementById('mailModal').classList.remove('open'); };
+
+// ════ ADMIN ════
+window.openAdminDirect = async function() { stopGame(); showScreen('adminScreen'); await loadAdminData(); };
+window.openAdminModal  = function() {
+  document.getElementById('adminEmailInput').value='';
+  document.getElementById('adminPassInput').value='';
+  document.getElementById('adminModalError').style.display='none';
+  document.getElementById('adminModal').classList.add('open');
+};
+window.closeAdminModal = function() { document.getElementById('adminModal').classList.remove('open'); };
+window.checkAdminLogin = async function() {
+  const email = document.getElementById('adminEmailInput').value.trim().toLowerCase();
+  const pass  = document.getElementById('adminPassInput').value;
+  if (email===ADMIN_EMAIL.toLowerCase()&&pass===ADMIN_PASS) {
+    closeAdminModal(); stopGame(); showScreen('adminScreen'); await loadAdminData();
+  } else { document.getElementById('adminModalError').style.display='block'; }
+};
+window.backToGame = function() { showScreen('gameScreen'); startGame(); };
+
+// Send announcement
+window.sendAnnouncement = async function() {
+  const target  = document.getElementById('annTarget').value;
+  const title   = document.getElementById('annTitle').value.trim();
+  const message = document.getElementById('annMessage').value.trim();
+  const status  = document.getElementById('annStatus');
+  if (!message) { status.style.display='block';status.style.color='#ff4d7d';status.textContent='⚠️ Mesaj boş olamaz!';return; }
+  try {
+    if (target==='all') {
+      await addDoc(collection(db,"announcements"),{title:title||'Duyuru',message,target:'all',createdAt:serverTimestamp(),createdBy:ADMIN_EMAIL});
+      status.textContent='✅ Herkese duyuru gönderildi!';
+    } else {
+      await addDoc(collection(db,"private_announcements"),{toUid:target,title:title||'Özel Mesaj',body:message,read:false,createdAt:serverTimestamp()});
+      status.textContent='✅ Kullanıcıya özel duyuru gönderildi!';
+    }
+    status.style.display='block'; status.style.color='var(--accent)';
+    document.getElementById('annMessage').value='';
+    document.getElementById('annTitle').value='';
+    setTimeout(()=>loadAdminAnnouncements(),500);
+  } catch(e){ status.style.display='block';status.style.color='#ff4d7d';status.textContent='❌ Hata: '+e.message; }
+};
+
+// Send coins
+window.sendCoinsToUser = async function() {
+  const targetVal = document.getElementById('coinTarget').value;
+  const amount    = parseInt(document.getElementById('coinAmount').value)||0;
+  const status    = document.getElementById('coinSendStatus');
+  if (!targetVal) { status.style.display='block';status.style.color='#ff4d7d';status.textContent='⚠️ Oyuncu seçin!';return; }
+  if (amount<=0)  { status.style.display='block';status.style.color='#ff4d7d';status.textContent='⚠️ Geçerli miktar girin!';return; }
+  try {
+    if (targetVal==='ALL') {
+      const snap = await getDocs(collection(db,"users"));
+      const proms=[];
+      snap.forEach(d=>proms.push(updateDoc(doc(db,"users",d.id),{totalCoins:increment(amount)})));
+      await Promise.all(proms);
+      status.textContent=`✅ Herkese ${amount} koin gönderildi!`;
+    } else {
+      await updateDoc(doc(db,"users",targetVal),{totalCoins:increment(amount)});
+      status.textContent=`✅ ${amount} koin gönderildi!`;
+    }
+    status.style.display='block'; status.style.color='var(--gold)';
+    document.getElementById('coinAmount').value='';
+  } catch(e){ status.style.display='block';status.style.color='#ff4d7d';status.textContent='❌ Hata: '+e.message; }
+};
+
+// Ban
+let banTargetUid=null;
+window.openBanModal = function(uid,name) {
+  banTargetUid=uid;
+  document.getElementById('banTargetName').textContent=name;
+  document.getElementById('banMinutesInput').value='30';
+  document.getElementById('banReasonInput').value='';
+  document.getElementById('banModal').style.display='flex';
+};
+window.closeBanModal = function() { document.getElementById('banModal').style.display='none'; banTargetUid=null; };
+window.applyBan = async function() {
+  if (!banTargetUid) return;
+  const mins   = parseInt(document.getElementById('banMinutesInput').value)||30;
+  const reason = document.getElementById('banReasonInput').value.trim();
+  const until  = new Date(Date.now()+mins*60*1000);
+  await setDoc(doc(db,"bans",banTargetUid),{until:Timestamp.fromDate(until),minutes:mins,reason:reason||'',bannedAt:serverTimestamp()});
+  document.getElementById('banModal').style.display='none'; banTargetUid=null;
+  alert('✅ Kullanıcı '+mins+' dakika banlandı.');
+};
+
+async function loadAdminData() {
+  const wrapper=document.getElementById('usersTableWrapper');
+  wrapper.innerHTML='<div class="loading-spinner"><div class="spinner"></div> Yükleniyor...</div>';
+  const snap=await getDocs(collection(db,"users"));
+  const users=[];
+  snap.forEach(d=>users.push({...d.data(),_uid:d.id}));
+
+  document.getElementById('totalUsers').textContent    = users.length;
+  document.getElementById('totalSessions').textContent = users.reduce((s,u)=>s+(u.totalSessions||0),0);
+  document.getElementById('topScore').textContent      = users.length?Math.max(...users.map(u=>u.highScore||0)):0;
+
+  const annTarget  = document.getElementById('annTarget');
+  const coinTarget = document.getElementById('coinTarget');
+  annTarget.innerHTML  = '<option value="all">🌐 Herkese Gönder</option>';
+  coinTarget.innerHTML = '<option value="">Oyuncu Seç...</option><option value="ALL">🌐 Herkese Gönder</option>';
+  users.forEach(u=>{
+    const lbl = '👤 '+(u.displayName||u.email);
+    const o1=document.createElement('option'); o1.value=u._uid; o1.textContent=lbl; annTarget.appendChild(o1);
+    if (u.email!==ADMIN_EMAIL) {
+      const o2=document.createElement('option'); o2.value=u._uid; o2.textContent=(u.displayName||u.email)+' (💰'+(u.totalCoins||0)+')'; coinTarget.appendChild(o2);
+    }
+  });
+
+  users.sort((a,b)=>(b.highScore||0)-(a.highScore||0));
+  const rows=users.map(u=>{
+    const last  = u.lastSeen   ? new Date(u.lastSeen.seconds*1000).toLocaleString('tr-TR') : '—';
+    const first = u.firstLogin ? new Date(u.firstLogin.seconds*1000).toLocaleDateString('tr-TR') : '—';
+    const isAdm = u.email===ADMIN_EMAIL;
+    const lastIp = u.lastIP || '—';
+    const playMins = u.totalPlayMinutes ? (u.totalPlayMinutes>=60 ? Math.floor(u.totalPlayMinutes/60)+'sa '+Math.floor(u.totalPlayMinutes)%60+'dk' : Math.floor(u.totalPlayMinutes)+'dk') : '0dk';
+    const banBtn= isAdm ? '<span style="font-size:10px;color:#ffaa00">👑 ADMİN</span>' :
+      `<button onclick="openBanModal('${u._uid}','${(u.displayName||u.email||'').replace(/'/g,'\\\'')}')"
+        style="padding:3px 8px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-size:10px;cursor:pointer;border-radius:2px;">⛔ Ban</button>
+       <button onclick="openMuteModal('${u._uid}','${(u.displayName||u.email||'').replace(/'/g,'\\\'')}')"
+        style="padding:3px 8px;background:transparent;border:1px solid #aa88ff;color:#aa88ff;font-size:10px;cursor:pointer;border-radius:2px;">🔇 Mute</button>`;
+    const safeU = JSON.stringify(u).replace(/\\/g,'\\\\').replace(/'/g,'\\\'');
+    return `<tr>
+      <td>${u.photoURL?`<img src="${u.photoURL}" class="user-row-avatar" onerror="this.style.display='none'">`:''}${u.displayName||'—'}</td>
+      <td style="color:var(--muted);font-size:11px">${u.email}</td>
+      <td><span class="badge badge-level">Lvl ${u.level||1}</span></td>
+      <td style="font-family:var(--pixel);font-size:10px;color:var(--accent)">
+        ${u.highScore||0}
+        ${!isAdm?`<button onclick="openScoreEdit('${u._uid}','${(u.displayName||u.email||'').replace(/'/g,'\\\'').replace(/"/g,'\\"')}',${u.highScore||0})" style="margin-left:4px;padding:2px 6px;background:transparent;border:1px solid var(--accent3);color:var(--accent3);font-size:9px;cursor:pointer;border-radius:2px;">✏️</button>`:''}
+      </td>
+      <td style="font-family:var(--pixel);font-size:9px;color:var(--gold)">${u.totalCoins||0}</td>
+      <td style="color:var(--muted);font-size:11px">${u.totalSessions||1}x</td>
+      <td style="color:var(--muted);font-size:10px">${first}</td>
+      <td style="color:var(--muted);font-size:10px">${last}</td>
+      <td style="color:var(--muted);font-size:10px;font-family:monospace;">${lastIp}</td>
+      <td style="color:var(--muted);font-size:10px">${playMins}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button onclick='openPlayerDetail(${JSON.stringify(u)})' style="padding:3px 8px;background:transparent;border:1px solid #ffaa00;color:#ffaa00;font-size:10px;cursor:pointer;border-radius:2px;">🔍</button>
+        ${banBtn}
+      </td>
+    </tr>`;
+  }).join('');
+  wrapper.innerHTML=`<div style="overflow-x:auto"><table class="users-table"><thead><tr>
+    <th>İSİM</th><th>E-POSTA</th><th>LEVEL</th><th>EN YÜKSEK</th><th>KOİN</th><th>OTURUM</th><th>İLK GİRİŞ</th><th>SON AKTİVİTE</th><th>SON IP</th><th>TOPLAM SÜRE</th><th>İŞLEM</th>
+  </tr></thead><tbody>${rows}</tbody></table></div>`;
+
+  // Load sent announcements
+  await loadAdminAnnouncements();
+  // Check event state for admin UI
+  await checkAdminEventUI();
+  // Check support unread
+  await checkAdminSupportBadge();
+}
+
+// Load and display all sent announcements in admin panel
+async function loadAdminAnnouncements() {
+  const listEl = document.getElementById('adminAnnList');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="loading-spinner"><div class="spinner"></div> Yükleniyor...</div>';
+  try {
+    const globalSnap = await getDocs(collection(db,"announcements"));
+    const glAnns = [];
+    globalSnap.forEach(d => glAnns.push({id:d.id, ...d.data(), _type:'global'}));
+
+    const privSnap = await getDocs(collection(db,"private_announcements"));
+    const prAnns = [];
+    privSnap.forEach(d => prAnns.push({id:d.id, ...d.data(), _type:'private'}));
+
+    const all = [...glAnns,...prAnns].sort((a,b)=>((b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)));
+
+    if (all.length===0) {
+      listEl.innerHTML = '<div class="no-admin-ann">📭 Henüz hiç duyuru gönderilmedi</div>';
+      return;
+    }
+    listEl.innerHTML = all.map(a => {
+      const date = a.createdAt ? new Date(a.createdAt.seconds*1000).toLocaleString('tr-TR') : '';
+      const isPriv = a._type==='private';
+      const cls = isPriv ? 'admin-ann-item private-ann' : 'admin-ann-item';
+      const typeLabel = isPriv ? '👤 Özel' : '🌐 Herkese';
+      const titleTxt = a.title||a.title||'Duyuru';
+      const msgTxt = a.message||a.body||'';
+      const col = isPriv ? 'var(--accent3)' : '#ffaa00';
+      return `<div class="${cls}">
+        <div class="admin-ann-body">
+          <div class="admin-ann-title" style="color:${col}">${typeLabel} · ${titleTxt}</div>
+          <div class="admin-ann-msg">${msgTxt}</div>
+          <div class="admin-ann-meta">${date}</div>
+        </div>
+        <button class="admin-ann-del" onclick="deleteAdminAnn('${a.id}','${a._type}',this)">🗑 Sil</button>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div class="no-admin-ann" style="color:#ff4d7d;">❌ Yüklenemedi: '+e.message+'</div>';
+  }
+}
+
+window.deleteAdminAnn = async function(id, type, btn) {
+  if (!confirm('Bu duyuruyu silmek istediğinize emin misiniz?')) return;
+  try {
+    btn.textContent='...'; btn.disabled=true;
+    const colName = type==='private' ? 'private_announcements' : 'announcements';
+    await deleteDoc(doc(db, colName, id));
+    const item = btn.closest('.admin-ann-item');
+    item.style.opacity='0'; item.style.transition='opacity 0.3s';
+    setTimeout(()=>item.remove(),300);
+  } catch(e) { alert('Silinemedi: '+e.message); btn.textContent='🗑 Sil'; btn.disabled=false; }
+};
+window.openShop = function() {
+  document.getElementById('shopCoinBalance').textContent=gameState.totalCoins;
+  renderShopSection('shopColors',SHOP_COLORS,'colors',appearance.colorId);
+  renderShopSection('shopHats',SHOP_HATS,'hats',appearance.hatId);
+  renderShopSection('shopGlasses',SHOP_GLASSES,'glasses',appearance.glassesId);
+  document.getElementById('shopMessage').style.display='none';
+  document.getElementById('shopModal').classList.add('open');
+};
+window.closeShop = function() { document.getElementById('shopModal').classList.remove('open'); saveProgress(); };
+
+function renderShopSection(cid,items,cat,equippedId) {
+  const c=document.getElementById(cid); c.innerHTML='';
+  items.forEach(item=>{
+    const owned=ownedItems[cat].includes(item.id);
+    const equipped=equippedId===item.id;
+    const div=document.createElement('div');
+    div.className='shop-item'+(equipped?' equipped':owned?' owned':'');
+    div.innerHTML=`<span class="item-icon">${item.icon}</span><span class="item-name">${item.name}</span><span class="item-price">${equipped?'✓ Giyili':owned?'✓ Sahip':'💰 '+item.price}</span>`;
+    div.onclick=()=>handleShopClick(item,cat,cid,items);
+    c.appendChild(div);
+  });
+}
+
+function handleShopClick(item,cat,cid,items) {
+  const msg=document.getElementById('shopMessage');
+  const owned=ownedItems[cat].includes(item.id);
+  if (!owned) {
+    if (gameState.totalCoins<item.price) { msg.style.display='block';msg.style.color='#ff4d7d';msg.textContent='❌ Yeterli koin yok! ('+item.price+' gerekli)';return; }
+    gameState.totalCoins-=item.price; ownedItems[cat].push(item.id);
+    document.getElementById('shopCoinBalance').textContent=gameState.totalCoins;
+    document.getElementById('totalCoinsDisplay').textContent=gameState.totalCoins;
+    msg.style.display='block';msg.style.color='var(--accent)';msg.textContent='✅ '+item.name+' satın alındı!';
+  }
+  if (cat==='colors')   appearance.colorId=item.id;
+  if (cat==='hats')     appearance.hatId=item.id;
+  if (cat==='glasses')  appearance.glassesId=item.id;
+  renderShopSection(cid,items,cat,item.id);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ════════════════════════════════════════════
+//                GAME ENGINE
+// ════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const W=canvas.width, H=canvas.height;
+
+const gameState = { score:0, highScore:0, level:1, hp:3, running:false, paused:false, animFrame:null, totalCoins:0 };
+const player    = { x:80, y:0, w:28, h:28, vy:0, vx:0, onGround:false, frame:0, frameTimer:0 };
+
+const GROUND_Y=H-60, GRAVITY=0.55, JUMP_FORCE=-12, MOVE_SPEED=4;
+let obstacles=[], coins=[], hearts=[], particles=[], bgStars=[];
+let spawnTimer=0, coinTimer=0, heartTimer=0, distanceTraveled=0, worldSpeed=3;
+
+for(let i=0;i<70;i++) bgStars.push({x:Math.random()*W,y:Math.random()*(H-80),r:Math.random()*1.4+0.3,speed:Math.random()*0.5+0.2});
+
+const keys={};
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if (e.code==='Space'&&document.getElementById('gameOverOverlay').classList.contains('visible')) { restartFromOverlay(); return; }
+  if (e.code==='KeyP'||e.code==='Escape') { if (gameState.running||gameState.paused) togglePause(); }
+});
+document.addEventListener('keyup',e=>{ keys[e.code]=false; });
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if (document.getElementById('gameOverOverlay').classList.contains('visible')) { restartFromOverlay(); return; }
+  if (gameState.paused) { togglePause(); return; }
+  keys['Space']=true;
+},{passive:false});
+canvas.addEventListener('touchend',()=>{ keys['Space']=false; });
+
+window.restartFromOverlay = function() {
+  document.getElementById('gameOverOverlay').classList.remove('visible');
+  gameState.running=true; resetGame(); loop();
+};
+
+window.togglePause = function() {
+  if (!gameState.running&&!gameState.paused) return;
+  if (gameState.paused) {
+    // resume
+    gameState.paused=false; gameState.running=true;
+    document.getElementById('pauseOverlay').classList.remove('visible');
+    document.getElementById('pauseBtn').textContent='⏸';
+    loop();
+  } else {
+    // pause
+    gameState.paused=true; gameState.running=false;
+    if (gameState.animFrame) cancelAnimationFrame(gameState.animFrame);
+    document.getElementById('pauseOverlay').classList.add('visible');
+    document.getElementById('pauseBtn').textContent='▶';
+  }
+};
+
+function getWorldSpeed() {
+  const base=2.8, growth=Math.min(gameState.score*0.006,3.5), levelBonus=(gameState.level-1)*0.3;
+  return Math.min(base+growth+levelBonus,7.5);
+}
+function getSpawnInterval() { return Math.max(48,115-gameState.score*0.08); }
+
+function resetGame() {
+  player.x=80; player.y=GROUND_Y-player.h; player.vy=0; player.vx=0; player.onGround=false;
+  obstacles=[]; coins=[]; hearts=[]; particles=[];
+  spawnTimer=0; coinTimer=0; heartTimer=0; distanceTraveled=0;
+  worldSpeed=getWorldSpeed(); gameState.score=0; gameState.hp=3;
+  gameState.paused=false;
+  document.getElementById('pauseOverlay').classList.remove('visible');
+  document.getElementById('pauseBtn').textContent='⏸';
+  updateHUD();
+}
+
+function startGame() {
+  if (gameState.running) return;
+  document.getElementById('gameOverOverlay').classList.remove('visible');
+  gameState.running=true; gameState.sessionStartTime=Date.now(); resetGame(); loop();
+}
+function stopGame() {
+  gameState.running=false; gameState.paused=false;
+  document.getElementById('pauseOverlay').classList.remove('visible');
+  if (gameState.animFrame) cancelAnimationFrame(gameState.animFrame);
+  // Save session play time
+  if (currentUser && gameState.sessionStartTime) {
+    const mins = (Date.now()-gameState.sessionStartTime)/60000;
+    if (mins>0.1) updateDoc(doc(db,"users",currentUser.uid),{totalPlayMinutes:increment(mins)}).catch(()=>{});
+    gameState.sessionStartTime=null;
+  }
+}
+function loop() {
+  if (!gameState.running) return;
+  update(); draw();
+  gameState.animFrame=requestAnimationFrame(loop);
+}
+
+function update() {
+  player.vx=0;
+  if (keys['ArrowRight']||keys['KeyD']) player.vx=MOVE_SPEED;
+  if (keys['ArrowLeft'] ||keys['KeyA']) player.vx=-MOVE_SPEED;
+  if ((keys['Space']||keys['ArrowUp']||keys['KeyW'])&&player.onGround) {
+    player.vy=JUMP_FORCE; player.onGround=false;
+    spawnParticles(player.x+player.w/2,player.y+player.h,'#4fffb0',6);
+  }
+  player.vy+=GRAVITY; player.x+=player.vx; player.y+=player.vy;
+  if (player.y>=GROUND_Y-player.h){player.y=GROUND_Y-player.h;player.vy=0;player.onGround=true;}
+  player.x=Math.max(0,Math.min(W-player.w,player.x));
+  player.frameTimer++; if(player.frameTimer>8){player.frame=(player.frame+1)%4;player.frameTimer=0;}
+
+  worldSpeed=getWorldSpeed();
+  bgStars.forEach(s=>{s.x-=s.speed*(worldSpeed/3);if(s.x<0){s.x=W;s.y=Math.random()*(H-80);}});
+
+  spawnTimer++;
+  if (spawnTimer>getSpawnInterval()) {
+    spawnTimer=0;
+    const h=20+Math.random()*30+Math.min(gameState.score*0.02,20);
+    const w=16+Math.random()*14;
+    const colors=['#ff4d7d','#ff7055','#e05580'];
+    obstacles.push({x:W,y:GROUND_Y-h,w,h,color:colors[Math.floor(Math.random()*colors.length)]});
+  }
+
+  coinTimer++;
+  if (coinTimer>55) {
+    coinTimer=0;
+    if (Math.random()>0.25) {
+      const rows=[GROUND_Y-40,GROUND_Y-90,GROUND_Y-140];
+      coins.push({x:W,y:rows[Math.floor(Math.random()*rows.length)],r:9,collected:false});
+    }
+  }
+
+  // Hearts — rare spawn only when hp < 3
+  heartTimer++;
+  if (heartTimer>300) {
+    heartTimer=0;
+    if (gameState.hp<3 && Math.random()<0.35) {
+      const rows=[GROUND_Y-50,GROUND_Y-100,GROUND_Y-150];
+      hearts.push({x:W,y:rows[Math.floor(Math.random()*rows.length)],r:14,collected:false});
+    }
+  }
+
+  // Move obstacles
+  for (let i=obstacles.length-1;i>=0;i--) {
+    obstacles[i].x-=worldSpeed;
+    if (obstacles[i].x+obstacles[i].w<0){obstacles.splice(i,1);continue;}
+    if (rectsOverlap(player,obstacles[i])) {
+      obstacles.splice(i,1); gameState.hp--;
+      spawnParticles(player.x+player.w/2,player.y+player.h/2,'#ff4d7d',12);
+      if (gameState.hp<=0){gameOver();return;}
+      updateHUD();
+    }
+  }
+
+  // Move coins
+  for (let i=coins.length-1;i>=0;i--) {
+    coins[i].x-=worldSpeed;
+    if (coins[i].x<-20){coins.splice(i,1);continue;}
+    const{x:cx,y:cy,r:cr}=coins[i];
+    if (player.x<cx+cr&&player.x+player.w>cx-cr&&player.y<cy+cr&&player.y+player.h>cy-cr) {
+      coins.splice(i,1);
+      const mult = window._doubleEventActive ? 2 : 1;
+      gameState.score+=10*mult; gameState.totalCoins+=10*mult;
+      spawnParticles(cx,cy,'#ffc842',8); updateHUD();
+    }
+  }
+
+  // Move hearts
+  for (let i=hearts.length-1;i>=0;i--) {
+    hearts[i].x-=worldSpeed*0.85;
+    if (hearts[i].x<-20){hearts.splice(i,1);continue;}
+    const{x:hx,y:hy,r:hr}=hearts[i];
+    if (player.x<hx+hr&&player.x+player.w>hx-hr&&player.y<hy+hr&&player.y+player.h>hy-hr) {
+      hearts.splice(i,1);
+      if (gameState.hp<3){gameState.hp++; spawnParticles(hx,hy,'#ff80aa',10); updateHUD();}
+    }
+  }
+
+  distanceTraveled+=worldSpeed;
+  if (distanceTraveled>100){distanceTraveled=0;gameState.score++;updateHUD();}
+
+  const newLevel=Math.floor(gameState.score/100)+1;
+  if (newLevel>gameState.level){gameState.level=newLevel;updateHUD();saveProgress();}
+
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.life-=2;
+    if(p.life<=0)particles.splice(i,1);
+  }
+}
+
+function rectsOverlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function spawnParticles(x,y,color,count){
+  for(let i=0;i<count;i++) particles.push({x,y,color,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4-2,life:60+Math.random()*40,r:2+Math.random()*3});
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  // Softer sky — muted indigo gradient
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#0c1020');
+  sky.addColorStop(1,'#101625');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+
+  // Stars
+  bgStars.forEach(s=>{
+    ctx.fillStyle=`rgba(180,190,230,${0.2+s.speed*0.2})`;
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+  });
+
+  // Ground
+  ctx.fillStyle='#181828'; ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
+  ctx.fillStyle='#4fffb0'; ctx.fillRect(0,GROUND_Y,W,2);
+  ctx.fillStyle='rgba(79,255,176,0.06)';
+  for(let gx=0;gx<W;gx+=42) ctx.fillRect(gx,GROUND_Y+2,21,H-GROUND_Y-2);
+
+  // Obstacles — softer coral/rose tones
+  obstacles.forEach(o=>{
+    ctx.fillStyle=o.color; ctx.fillRect(o.x,o.y,o.w,o.h);
+    ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(o.x,o.y,o.w,2); ctx.fillRect(o.x,o.y,2,o.h);
+    ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(o.x+o.w-2,o.y,2,o.h); ctx.fillRect(o.x,o.y+o.h-2,o.w,2);
+  });
+
+  // Coins
+  coins.forEach(c=>{
+    const pulse=Math.sin(Date.now()*0.005)*1;
+    ctx.fillStyle='#ffc842'; ctx.shadowColor='#ffc842'; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.arc(c.x,c.y,c.r+pulse,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(255,255,200,0.7)'; ctx.beginPath(); ctx.arc(c.x-2,c.y-2,3,0,Math.PI*2); ctx.fill();
+  });
+
+  // Hearts pickups — drawn as circle (pink) not emoji
+  hearts.forEach(h=>{
+    const pulse=1+Math.sin(Date.now()*0.006)*0.15;
+    ctx.save();
+    ctx.translate(h.x,h.y); ctx.scale(pulse,pulse);
+    ctx.fillStyle='#ff6090'; ctx.shadowColor='#ff80aa'; ctx.shadowBlur=14;
+    ctx.beginPath(); ctx.arc(0,0,h.r,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    // white plus sign
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.fillRect(-1,-5,2,10); ctx.fillRect(-5,-1,10,2);
+    ctx.restore();
+  });
+
+  drawPlayer();
+
+  particles.forEach(p=>{
+    ctx.globalAlpha=p.life/100; ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=4;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  });
+  ctx.globalAlpha=1;
+}
+
+function getPlayerColor() {
+  const c=SHOP_COLORS.find(c=>c.id===appearance.colorId);
+  return c?{main:c.color,body:c.bodyColor}:{main:'#4fffb0',body:'#00cc66'};
+}
+
+function drawPlayer() {
+  const{x:px,y:py,w:pw,h:ph}=player;
+  const col=getPlayerColor();
+  ctx.fillStyle='rgba(79,255,176,0.1)'; ctx.beginPath();
+  ctx.ellipse(px+pw/2,GROUND_Y+2,pw/2,4,0,0,Math.PI*2); ctx.fill();
+  ctx.shadowColor=col.main; ctx.shadowBlur=10;
+  ctx.fillStyle=col.main; ctx.fillRect(px+4,py+6,pw-8,ph-6); ctx.fillRect(px+2,py,pw-4,12);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#0a0a0f'; ctx.fillRect(px+7,py+3,4,4); ctx.fillRect(px+pw-11,py+3,4,4);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(px+8,py+4,2,2); ctx.fillRect(px+pw-10,py+4,2,2);
+  const legOff=player.onGround?Math.sin(player.frameTimer*0.5)*3:0;
+  ctx.fillStyle=col.body; ctx.fillRect(px+5,py+ph-8+legOff,7,8); ctx.fillRect(px+pw-12,py+ph-8-legOff,7,8);
+  const hat=appearance.hatId;
+  if (hat!=='none') {
+    ctx.font='16px Arial'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    const hi={cap:'🧢',crown:'👑',wizard:'🧙',helmet:'⛑️'};
+    ctx.fillText(hi[hat]||'',px+pw/2,py+2);
+  }
+  const gl=appearance.glassesId;
+  if (gl!=='none') {
+    const tints={cool:'rgba(96,180,255,0.55)',nerd:'rgba(200,200,80,0.45)'};
+    ctx.fillStyle=tints[gl]||'transparent';
+    ctx.fillRect(px+5,py+2,pw-10,7);
+  }
+  ctx.shadowBlur=0; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+}
+
+function gameOver() {
+  gameState.running=false;
+  gameState.hp=0;
+  updateHUD();
+  if (gameState.score>gameState.highScore){gameState.highScore=gameState.score;saveProgress();}
+  document.getElementById('goScoreText').textContent='PUAN: '+gameState.score;
+  document.getElementById('gameOverOverlay').classList.add('visible');
+}
+
+function updateHUD() {
+  document.getElementById('scoreDisplay').textContent     = gameState.score;
+  document.getElementById('highScoreDisplay').textContent = gameState.highScore;
+  document.getElementById('levelDisplay').textContent     = gameState.level;
+  document.getElementById('totalCoinsDisplay').textContent= gameState.totalCoins;
+  const hp=Math.max(0,Math.min(3,gameState.hp));
+  document.getElementById('hpDisplay').textContent = hp>0 ? '❤️'.repeat(hp) : '💔';
+}
+
+// ════ 2X EVENT SYSTEM ════
+window._doubleEventActive = false;
+let _eventCountdownInterval = null;
+
+async function checkActiveEvent() {
+  try {
+    const snap = await getDoc(doc(db,"config","doubleEvent"));
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.active && d.endsAt && d.endsAt.toMillis() > Date.now()) {
+        activateEventBanner(d.endsAt.toMillis());
+        return true;
+      }
+    }
+  } catch(e){}
+  return false;
+}
+
+function activateEventBanner(endsAtMs) {
+  window._doubleEventActive = true;
+  const banner = document.getElementById('eventBanner');
+  banner.classList.add('active');
+  document.getElementById('gameScreen').classList.add('event-active');
+  if (_eventCountdownInterval) clearInterval(_eventCountdownInterval);
+  function updateCD() {
+    const rem = endsAtMs - Date.now();
+    if (rem<=0) { deactivateEventBanner(); return; }
+    const h=Math.floor(rem/3600000), m=Math.floor((rem%3600000)/60000), s=Math.floor((rem%60000)/1000);
+    document.getElementById('eventCountdown').textContent =
+      (h>0?h+'s ':'')+m+'dk '+s+'sn kaldı';
+  }
+  updateCD();
+  _eventCountdownInterval = setInterval(updateCD, 1000);
+}
+
+function deactivateEventBanner() {
+  window._doubleEventActive = false;
+  document.getElementById('eventBanner').classList.remove('active');
+  document.getElementById('gameScreen').classList.remove('event-active');
+  if (_eventCountdownInterval) { clearInterval(_eventCountdownInterval); _eventCountdownInterval=null; }
+}
+
+window.startDoubleEvent = async function() {
+  const hours = parseFloat(document.getElementById('eventHoursInput').value)||2;
+  const statusEl = document.getElementById('eventAdminStatus');
+  try {
+    const endsAt = new Date(Date.now() + hours*3600*1000);
+    await setDoc(doc(db,"config","doubleEvent"),{active:true,endsAt:Timestamp.fromDate(endsAt),startedBy:ADMIN_EMAIL,startedAt:serverTimestamp()});
+    // Send announcement to all players
+    await addDoc(collection(db,"announcements"),{
+      title:'🔥 2X Para Etkinliği Başladı!',
+      message:`Tüm koinler ${hours} saat boyunca 2 KAT! Hemen oyna! ⏰ Bitiş: ${endsAt.toLocaleString('tr-TR')}`,
+      target:'all',createdAt:serverTimestamp(),createdBy:ADMIN_EMAIL,eventType:'doubleCoins'
+    });
+    statusEl.textContent='✅ Etkinlik başlatıldı ve duyuru gönderildi!';
+    document.getElementById('eventStartBtn').style.display='none';
+    document.getElementById('eventStopBtn').style.display='inline-block';
+    activateEventBanner(endsAt.getTime());
+  } catch(e) { statusEl.textContent='❌ Hata: '+e.message; }
+};
+
+window.stopDoubleEvent = async function() {
+  try {
+    await setDoc(doc(db,"config","doubleEvent"),{active:false,endsAt:Timestamp.fromDate(new Date(0)),stoppedBy:ADMIN_EMAIL});
+    document.getElementById('eventAdminStatus').textContent='⛔ Etkinlik durduruldu.';
+    document.getElementById('eventStartBtn').style.display='inline-block';
+    document.getElementById('eventStopBtn').style.display='none';
+    deactivateEventBanner();
+  } catch(e) { document.getElementById('eventAdminStatus').textContent='❌ Hata: '+e.message; }
+};
+
+async function checkAdminEventUI() {
+  try {
+    const snap = await getDoc(doc(db,"config","doubleEvent"));
+    if (snap.exists() && snap.data().active && snap.data().endsAt?.toMillis() > Date.now()) {
+      document.getElementById('eventStartBtn').style.display='none';
+      document.getElementById('eventStopBtn').style.display='inline-block';
+      document.getElementById('eventAdminStatus').textContent='🔥 Etkinlik aktif! Bitiş: '+new Date(snap.data().endsAt.toMillis()).toLocaleString('tr-TR');
+    }
+  } catch(e){}
+}
+
+// ════ PLAYER DETAIL MODAL ════
+let _pdCurrentUid = null;
+
+window.openPlayerDetail = function(u) {
+  _pdCurrentUid = u._uid || u.uid;
+  const isAdm = u.email === ADMIN_EMAIL;
+  document.getElementById('pdAvatar').src = u.photoURL||'';
+  document.getElementById('pdName').textContent = u.displayName||'—';
+  document.getElementById('pdEmail').textContent = u.email||'—';
+
+  const first = u.firstLogin ? new Date(u.firstLogin.seconds*1000).toLocaleString('tr-TR') : '—';
+  const last  = u.lastSeen  ? new Date(u.lastSeen.seconds*1000).toLocaleString('tr-TR') : '—';
+  const playT = u.totalPlayMinutes ? (u.totalPlayMinutes>=60 ? (Math.floor(u.totalPlayMinutes/60)+'sa '+(Math.floor(u.totalPlayMinutes)%60)+'dk') : Math.floor(u.totalPlayMinutes)+'dk') : '—';
+  const lastIP = u.lastIP||'—';
+
+  document.getElementById('pdStatGrid').innerHTML = `
+    <div class="player-detail-stat"><div class="pds-label">En Yüksek Skor</div><div class="pds-value">${u.highScore||0}</div></div>
+    <div class="player-detail-stat"><div class="pds-label">Toplam Koin</div><div class="pds-value" style="color:var(--gold)">${u.totalCoins||0}</div></div>
+    <div class="player-detail-stat"><div class="pds-label">Level</div><div class="pds-value" style="color:var(--accent3)">${u.level||1}</div></div>
+    <div class="player-detail-stat"><div class="pds-label">Toplam Oturum</div><div class="pds-value">${u.totalSessions||1}</div></div>
+    <div class="player-detail-stat"><div class="pds-label">📅 Kayıt Tarihi</div><div class="pds-value" style="font-size:8px">${first}</div></div>
+    <div class="player-detail-stat"><div class="pds-label">🕐 Son Giriş</div><div class="pds-value" style="font-size:8px">${last}</div></div>
+    <div class="player-detail-stat"><div class="pds-label">🌐 Son IP</div><div class="pds-value" style="font-size:8px;font-family:monospace">${lastIP}</div></div>
+    <div class="player-detail-stat"><div class="pds-label">⏱ Toplam Süre</div><div class="pds-value">${playT}</div></div>
+  `;
+
+  // Items
+  const ownedColors = (u.ownedColors||['green']).map(id=>{ const c=SHOP_COLORS.find(x=>x.id===id); return c?`<span class="player-item-badge ${u.equippedColor===id?'equipped-badge':''}">${c.icon} ${c.name}${u.equippedColor===id?' ✓':''}</span>`:''; }).join('');
+  const ownedHats   = (u.ownedHats  ||['none']).filter(h=>h!=='none').map(id=>{ const h=SHOP_HATS.find(x=>x.id===id); return h?`<span class="player-item-badge ${u.equippedHat===id?'equipped-badge':''}">${h.icon} ${h.name}${u.equippedHat===id?' ✓':''}</span>`:''; }).join('');
+  const ownedGl     = (u.ownedGlasses||['none']).filter(g=>g!=='none').map(id=>{ const g=SHOP_GLASSES.find(x=>x.id===id); return g?`<span class="player-item-badge ${u.equippedGlasses===id?'equipped-badge':''}">${g.icon} ${g.name}${u.equippedGlasses===id?' ✓':''}</span>`:''; }).join('');
+  document.getElementById('pdItemsRow').innerHTML =
+    `<div style="margin-bottom:4px;font-size:10px;color:var(--muted);">Renkler:</div><div class="player-items-row">${ownedColors||'<span style="color:var(--muted);font-size:11px">—</span>'}</div>`+
+    (ownedHats?`<div style="margin-bottom:4px;font-size:10px;color:var(--muted);">Şapkalar:</div><div class="player-items-row">${ownedHats}</div>`:'')+
+    (ownedGl?`<div style="margin-bottom:4px;font-size:10px;color:var(--muted);">Gözlükler:</div><div class="player-items-row">${ownedGl}</div>`:'');
+
+  document.getElementById('pdRewardRow').style.display='none';
+  document.getElementById('pdStatus').style.display='none';
+  const actions = document.querySelector('.player-detail-actions');
+  if (isAdm) { actions.style.display='none'; } else { actions.style.display='flex'; }
+  document.getElementById('playerDetailModal').classList.add('open');
+};
+
+window.closePlayerDetail = function() {
+  document.getElementById('playerDetailModal').classList.remove('open');
+  _pdCurrentUid = null;
+};
+
+window.showRewardInput = function() {
+  const row = document.getElementById('pdRewardRow');
+  row.style.display = row.style.display==='none' ? 'block' : 'none';
+};
+
+window.sendRewardToPlayer = async function() {
+  if (!_pdCurrentUid) return;
+  const amount = parseInt(document.getElementById('pdRewardAmount').value)||0;
+  const status = document.getElementById('pdStatus');
+  if (amount<=0) { status.style.display='block';status.style.color='#ff4d7d';status.textContent='⚠️ Geçerli miktar girin!';return; }
+  try {
+    await updateDoc(doc(db,"users",_pdCurrentUid),{totalCoins:increment(amount)});
+    // Send private notification
+    await addDoc(collection(db,"private_announcements"),{
+      toUid:_pdCurrentUid,title:'🎁 Ödül Koin!',
+      body:`Admin tarafından ${amount} koin ödülü aldınız! Tebrikler! 🎉`,
+      read:false,createdAt:serverTimestamp()
+    });
+    status.style.display='block'; status.style.color='var(--gold)';
+    status.textContent=`✅ ${amount} koin gönderildi ve bildirim yapıldı!`;
+    document.getElementById('pdRewardRow').style.display='none';
+    document.getElementById('pdRewardAmount').value='';
+    // Refresh table
+    setTimeout(()=>loadAdminData(),800);
+  } catch(e) { status.style.display='block';status.style.color='#ff4d7d';status.textContent='❌ Hata: '+e.message; }
+};
+
+window.confirmResetBalance = async function() {
+  if (!_pdCurrentUid) return;
+  if (!confirm('Bu oyuncunun bakiyesini 0 yapmak istediğinize emin misiniz?')) return;
+  const status = document.getElementById('pdStatus');
+  try {
+    await updateDoc(doc(db,"users",_pdCurrentUid),{totalCoins:0});
+    await addDoc(collection(db,"private_announcements"),{
+      toUid:_pdCurrentUid,title:'⚠️ Bakiye Sıfırlandı',
+      body:'Hesabınız incelendi ve bakiyeniz admin tarafından sıfırlandı.',
+      read:false,createdAt:serverTimestamp()
+    });
+    status.style.display='block'; status.style.color='#ff4d7d';
+    status.textContent='✅ Bakiye sıfırlandı ve kullanıcı bilgilendirildi.';
+    setTimeout(()=>loadAdminData(),800);
+  } catch(e) { status.style.display='block';status.style.color='#ff4d7d';status.textContent='❌ Hata: '+e.message; }
+};
+
+// ════ INVENTORY RESET ════
+window.openInventoryReset = function() {
+  const row = document.getElementById('pdInventoryResetRow');
+  row.style.display = row.style.display==='none' ? 'block' : 'none';
+  document.getElementById('invResetColors').checked=false;
+  document.getElementById('invResetHats').checked=false;
+  document.getElementById('invResetGlasses').checked=false;
+};
+
+window.applyInventoryReset = async function() {
+  if (!_pdCurrentUid) return;
+  const doColors  = document.getElementById('invResetColors').checked;
+  const doHats    = document.getElementById('invResetHats').checked;
+  const doGlasses = document.getElementById('invResetGlasses').checked;
+  if (!doColors && !doHats && !doGlasses) { alert('En az bir kategori seçin!'); return; }
+  if (!confirm('Seçilen eşyalar silinecek. Emin misiniz?')) return;
+  const status = document.getElementById('pdStatus');
+  try {
+    const updates = {};
+    if (doColors)  { updates.ownedColors=['green']; updates.equippedColor='green'; }
+    if (doHats)    { updates.ownedHats=['none'];    updates.equippedHat='none'; }
+    if (doGlasses) { updates.ownedGlasses=['none']; updates.equippedGlasses='none'; }
+    await updateDoc(doc(db,"users",_pdCurrentUid), updates);
+    await addDoc(collection(db,"private_announcements"),{
+      toUid:_pdCurrentUid, title:'🎒 Envanter Güncellendi',
+      body:'Hesabınız incelendi ve bazı eşyalarınız admin tarafından kaldırıldı.',
+      read:false, createdAt:serverTimestamp()
+    });
+    status.style.display='block'; status.style.color='#aa88ff';
+    status.textContent='✅ Envanter sıfırlandı.';
+    document.getElementById('pdInventoryResetRow').style.display='none';
+    setTimeout(()=>loadAdminData(),800);
+  } catch(e) { status.style.display='block';status.style.color='#ff4d7d';status.textContent='❌ Hata: '+e.message; }
+};
+
+// ════ MUTE ════
+let muteTargetUid=null;
+window.openMuteModal = function(uid,name) {
+  muteTargetUid=uid;
+  document.getElementById('muteTargetName').textContent=name;
+  document.getElementById('muteMinutesInput').value='10';
+  document.getElementById('muteReasonInput').value='';
+  document.getElementById('muteModal').style.display='flex';
+};
+window.openMuteFromDetail = function() {
+  if (!_pdCurrentUid) return;
+  const name = document.getElementById('pdName').textContent;
+  document.getElementById('playerDetailModal').classList.remove('open');
+  openMuteModal(_pdCurrentUid, name);
+};
+window.closeMuteModal = function() { document.getElementById('muteModal').style.display='none'; muteTargetUid=null; };
+window.applyMute = async function() {
+  if (!muteTargetUid) return;
+  const mins   = parseInt(document.getElementById('muteMinutesInput').value)||10;
+  const reason = document.getElementById('muteReasonInput').value.trim();
+  const until  = new Date(Date.now()+mins*60*1000);
+  await setDoc(doc(db,"mutes",muteTargetUid),{until:Timestamp.fromDate(until),minutes:mins,reason:reason||'',mutedAt:serverTimestamp()});
+  await addDoc(collection(db,"private_announcements"),{
+    toUid:muteTargetUid, title:'🔇 Mute Cezası',
+    body:`Destek sohbetinde ${mins} dakika boyunca mesaj gönderme yetkiniz kısıtlandı.`+(reason?'\nSebep: '+reason:''),
+    read:false, createdAt:serverTimestamp()
+  });
+  document.getElementById('muteModal').style.display='none'; muteTargetUid=null;
+  alert('✅ Kullanıcı '+mins+' dakika mute edildi.');
+};
+
+// ════ SUPPORT CHAT ════
+let _supportReplyTo = null;
+let _currentUserIsMuted = false;
+let _adminActiveThread = null;
+
+async function checkSupportMute() {
+  if (!currentUser) return false;
+  try {
+    const snap = await getDoc(doc(db,"mutes",currentUser.uid));
+    if (snap.exists()) {
+      const m = snap.data();
+      if (m.until && m.until.toMillis() > Date.now()) {
+        _currentUserIsMuted = true;
+        return true;
+      } else { await deleteDoc(doc(db,"mutes",currentUser.uid)); }
+    }
+  } catch(e){}
+  _currentUserIsMuted = false;
+  return false;
+}
+
+window.openSupportModal = async function() {
+  document.getElementById('supportModal').style.display='flex';
+  const muted = await checkSupportMute();
+  document.getElementById('supportMutedWarning').style.display = muted ? 'block' : 'none';
+  document.getElementById('supportInput').disabled = muted;
+  await loadSupportMessages();
+};
+window.closeSupportModal = function() { document.getElementById('supportModal').style.display='none'; };
+
+// User's own thread: support_threads/{uid}/messages
+async function loadSupportMessages() {
+  const area = document.getElementById('supportChatArea');
+  area.innerHTML='<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">Yükleniyor...</div>';
+  try {
+    const snap = await getDocs(query(
+      collection(db,"support_threads",currentUser.uid,"messages"),
+      orderBy("createdAt","asc")
+    ));
+    if (snap.empty) {
+      area.innerHTML='<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">📭 Henüz mesaj yok. Sorunuzu yazın!</div>';
+      return;
+    }
+    area.innerHTML='';
+    snap.forEach(d=>{
+      const msg=d.data();
+      const time=msg.createdAt?new Date(msg.createdAt.seconds*1000).toLocaleString('tr-TR'):'';
+      const div=document.createElement('div');
+      div.style.cssText='margin-bottom:8px;';
+      if (msg.isAdmin) {
+        // Admin reply — show with delete button for admin (but here this is user view)
+        div.innerHTML=`<div style="background:rgba(255,200,66,0.08);border:1px solid rgba(255,200,66,0.25);border-left:3px solid #ffaa00;border-radius:2px;padding:10px 12px;max-width:88%;">
+          <div style="font-size:9px;color:#ffaa00;font-family:'Press Start 2P',monospace;margin-bottom:4px;">👑 Admin</div>
+          <div style="font-size:13px;color:#e0e0f0;">${escHtml(msg.text)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;">${time}</div>
+        </div>`;
+      } else {
+        // User's own message — shown as "Sen (Anonim)"
+        div.innerHTML=`<div style="background:rgba(79,255,176,0.06);border:1px solid rgba(79,255,176,0.15);border-radius:2px;padding:10px 12px;max-width:88%;margin-left:auto;text-align:right;">
+          <div style="font-size:9px;color:var(--accent);margin-bottom:4px;">Sen (Anonim)</div>
+          <div style="font-size:13px;color:#e0e0f0;">${escHtml(msg.text)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;">${time}</div>
+        </div>`;
+      }
+      area.appendChild(div);
+    });
+    area.scrollTop=area.scrollHeight;
+    // Mark thread as read by user
+    await updateDoc(doc(db,"support_threads",currentUser.uid),{userUnread:0}).catch(()=>{});
+  } catch(e) { area.innerHTML='<div style="color:#ff4d7d;font-size:11px;padding:10px;">❌ Yüklenemedi: '+e.message+'</div>'; }
+}
+
+window.sendSupportMsg = async function() {
+  if (!currentUser) return;
+  const inp=document.getElementById('supportInput');
+  const text=inp.value.trim();
+  if (!text) return;
+  const muted=await checkSupportMute();
+  if (muted) { document.getElementById('supportMutedWarning').style.display='block'; return; }
+  try {
+    // Ensure thread doc exists with user info (name visible only to admin)
+    await setDoc(doc(db,"support_threads",currentUser.uid),{
+      uid:currentUser.uid,
+      displayName:currentUser.displayName||currentUser.email,
+      photoURL:currentUser.photoURL||'',
+      email:currentUser.email,
+      adminUnread:increment(1),
+      lastMsg:text,
+      lastAt:serverTimestamp()
+    },{merge:true});
+    // Add message to thread
+    await addDoc(collection(db,"support_threads",currentUser.uid,"messages"),{
+      uid:currentUser.uid, text, isAdmin:false, createdAt:serverTimestamp()
+    });
+    inp.value='';
+    await loadSupportMessages();
+  } catch(e) { alert('Gönderilemedi: '+e.message); }
+};
+
+function escHtml(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ════ ADMIN SUPPORT PANEL ════
+window.openAdminSupportModal = async function() {
+  _supportReplyTo=null; _adminActiveThread=null;
+  document.getElementById('adminSupportModal').style.display='flex';
+  await loadAdminThreadList();
+};
+window.closeAdminSupportModal = function() {
+  document.getElementById('adminSupportModal').style.display='none';
+  _supportReplyTo=null; _adminActiveThread=null;
+};
+
+async function loadAdminThreadList() {
+  const list=document.getElementById('adminSupportList');
+  list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">Yükleniyor...</div>';
+  // Reset reply bar
+  document.getElementById('adminReplyTarget').style.display='none';
+  document.getElementById('adminReplyInput').value='';
+  try {
+    const snap=await getDocs(collection(db,"support_threads"));
+    if (snap.empty) { list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">📭 Hiç destek talebi yok.</div>'; return; }
+    list.innerHTML='';
+    const threads=[];
+    snap.forEach(d=>threads.push({id:d.id,...d.data()}));
+    threads.sort((a,b)=>((b.lastAt?.seconds||0)-(a.lastAt?.seconds||0)));
+    threads.forEach(t=>{
+      const div=document.createElement('div');
+      const unread=t.adminUnread||0;
+      const lastTime=t.lastAt?new Date(t.lastAt.seconds*1000).toLocaleString('tr-TR'):'';
+      div.style.cssText='margin-bottom:8px;cursor:pointer;';
+      div.innerHTML=`<div style="background:rgba(96,180,255,0.06);border:1px solid ${unread>0?'#60b4ff':'rgba(96,180,255,0.2)'};border-left:3px solid #60b4ff;border-radius:2px;padding:12px 14px;transition:background 0.2s;" onmouseover="this.style.background='rgba(96,180,255,0.1)'" onmouseout="this.style.background='rgba(96,180,255,0.06)'">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          ${t.photoURL?`<img src="${t.photoURL}" style="width:22px;height:22px;border-radius:50%;border:1px solid #60b4ff;" onerror="this.style.display='none'">`:''}
+          <span style="font-size:13px;color:#e0e0f0;font-weight:600;">${escHtml(t.displayName||t.email||'—')}</span>
+          ${unread>0?`<span style="background:#ff4d7d;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;">${unread} yeni</span>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${escHtml(t.lastMsg||'')}</div>
+        <div style="font-size:10px;color:var(--muted);">${lastTime}</div>
+      </div>`;
+      div.onclick=()=>openAdminThread(t.id, t.displayName||t.email||'—');
+      list.appendChild(div);
+    });
+  } catch(e) { list.innerHTML='<div style="color:#ff4d7d;font-size:11px;padding:10px;">❌ Yüklenemedi: '+e.message+'</div>'; }
+}
+
+window.openAdminThread = async function(threadUid, userName) {
+  _adminActiveThread=threadUid;
+  const list=document.getElementById('adminSupportList');
+  list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">Yükleniyor...</div>';
+  // Show reply bar
+  const targetEl=document.getElementById('adminReplyTarget');
+  targetEl.style.display='block';
+  targetEl.innerHTML=`<span style="color:#60b4ff;">💬 ${escHtml(userName)}</span> ile konuşma &nbsp;<button onclick="loadAdminThreadList();_adminActiveThread=null;document.getElementById('adminReplyTarget').style.display='none';" style="padding:2px 8px;background:transparent;border:1px solid #333355;color:#555570;font-size:10px;cursor:pointer;border-radius:2px;">← Geri</button>`;
+  try {
+    const snap=await getDocs(query(
+      collection(db,"support_threads",threadUid,"messages"),
+      orderBy("createdAt","asc")
+    ));
+    // Mark admin unread as 0
+    await updateDoc(doc(db,"support_threads",threadUid),{adminUnread:0}).catch(()=>{});
+    list.innerHTML='';
+    if (snap.empty) { list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0;">Bu kullanıcıdan henüz mesaj yok.</div>'; return; }
+    snap.forEach(d=>{
+      const msg=d.data();
+      const time=msg.createdAt?new Date(msg.createdAt.seconds*1000).toLocaleString('tr-TR'):'';
+      const div=document.createElement('div');
+      if (msg.isAdmin) {
+        div.style.cssText='margin-bottom:8px;display:flex;justify-content:flex-end;';
+        div.innerHTML=`<div style="background:rgba(255,200,66,0.08);border:1px solid rgba(255,200,66,0.3);border-left:3px solid #ffaa00;border-radius:2px;padding:10px 12px;max-width:85%;">
+          <div style="font-size:9px;color:#ffaa00;margin-bottom:4px;">👑 Admin yanıtı</div>
+          <div style="font-size:13px;color:#e0e0f0;">${escHtml(msg.text)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+            <span style="font-size:10px;color:var(--muted);">${time}</span>
+            <button onclick="deleteThreadMsg('${threadUid}','${d.id}',this)" style="padding:2px 7px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-size:10px;cursor:pointer;border-radius:2px;">🗑</button>
+          </div>
+        </div>`;
+      } else {
+        div.style.cssText='margin-bottom:8px;';
+        div.innerHTML=`<div style="background:rgba(96,180,255,0.06);border:1px solid rgba(96,180,255,0.2);border-left:3px solid #60b4ff;border-radius:2px;padding:10px 12px;max-width:85%;">
+          <div style="font-size:9px;color:#60b4ff;margin-bottom:4px;">👤 ${escHtml(userName)} (Anonim)</div>
+          <div style="font-size:13px;color:#e0e0f0;">${escHtml(msg.text)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+            <span style="font-size:10px;color:var(--muted);">${time}</span>
+            <button onclick="deleteThreadMsg('${threadUid}','${d.id}',this)" style="padding:2px 7px;background:transparent;border:1px solid #ff4d7d;color:#ff4d7d;font-size:10px;cursor:pointer;border-radius:2px;">🗑</button>
+          </div>
+        </div>`;
+      }
+      list.appendChild(div);
+    });
+    list.scrollTop=list.scrollHeight;
+  } catch(e) { list.innerHTML='<div style="color:#ff4d7d;font-size:11px;padding:10px;">❌ Yüklenemedi: '+e.message+'</div>'; }
+};
+
+window.sendAdminReply = async function() {
+  const inp=document.getElementById('adminReplyInput');
+  const text=inp.value.trim();
+  if (!text) return;
+  if (!_adminActiveThread) { alert('Önce bir kullanıcı konuşması seçin!'); return; }
+  try {
+    await addDoc(collection(db,"support_threads",_adminActiveThread,"messages"),{
+      uid:'admin', text, isAdmin:true, createdAt:serverTimestamp()
+    });
+    // Update thread meta + notify user
+    await updateDoc(doc(db,"support_threads",_adminActiveThread),{
+      lastMsg:'Admin: '+text, lastAt:serverTimestamp(), userUnread:increment(1)
+    });
+    // Private notification to user
+    await addDoc(collection(db,"private_announcements"),{
+      toUid:_adminActiveThread, title:'🎧 Destek Yanıtı',
+      body:'Admin sorunuza yanıt verdi: '+text.substring(0,100)+(text.length>100?'...':''),
+      read:false, createdAt:serverTimestamp()
+    });
+    inp.value='';
+    await openAdminThread(_adminActiveThread, document.getElementById('adminReplyTarget').querySelector('span')?.textContent?.replace('💬 ','') || '—');
+  } catch(e) { alert('Gönderilemedi: '+e.message); }
+};
+
+window.deleteThreadMsg = async function(threadUid, msgId, btn) {
+  if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+  try {
+    btn.textContent='...'; btn.disabled=true;
+    await deleteDoc(doc(db,"support_threads",threadUid,"messages",msgId));
+    await openAdminThread(threadUid, document.getElementById('adminReplyTarget').querySelector('span')?.textContent?.replace('💬 ','') || '—');
+  } catch(e) { alert('Silinemedi: '+e.message); btn.textContent='🗑'; btn.disabled=false; }
+};
+
+window.deleteSupportMsg = async function(id, btn) {
+  // legacy - kept for compatibility
+  if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+  try { await deleteDoc(doc(db,"support_msgs",id)); await loadAdminThreadList(); }
+  catch(e) { alert('Silinemedi: '+e.message); }
+};
+
+async function checkAdminSupportBadge() {
+  try {
+    const snap=await getDocs(collection(db,"support_threads"));
+    let total=0;
+    snap.forEach(d=>{ total+=(d.data().adminUnread||0); });
+    const badge=document.getElementById('adminSupportBadge');
+    if (badge) {
+      if (total>0) { badge.style.display='inline'; badge.textContent=total; }
+      else { badge.style.display='none'; }
+    }
+  } catch(e){}
+}
+
+window.openScoreEditFromDetail = function() {
+  if (!_pdCurrentUid) return;
+  const name = document.getElementById('pdName').textContent;
+  // Get current score from stat grid
+  const scoreEl = document.querySelector('#pdStatGrid .player-detail-stat:first-child .pds-value');
+  const currentScore = scoreEl ? parseInt(scoreEl.textContent)||0 : 0;
+  document.getElementById('playerDetailModal').classList.remove('open');
+  openScoreEdit(_pdCurrentUid, name, currentScore);
+};
+
+// ════ SCORE EDIT ════
+let _scoreEditUid=null, _scoreEditName='';
+
+window.openScoreEdit = function(uid, name, currentScore) {
+  _scoreEditUid=uid; _scoreEditName=name;
+  document.getElementById('scoreEditTargetName').textContent = name;
+  document.getElementById('scoreEditInput').value = currentScore||0;
+  document.getElementById('scoreEditModal').classList.add('open');
+};
+
+window.closeScoreEdit = function() {
+  document.getElementById('scoreEditModal').classList.remove('open');
+  _scoreEditUid=null;
+};
+
+window.saveEditedScore = async function() {
+  if (!_scoreEditUid) return;
+  const newScore = parseInt(document.getElementById('scoreEditInput').value)||0;
+  try {
+    await updateDoc(doc(db,"users",_scoreEditUid),{highScore:newScore});
+    document.getElementById('scoreEditModal').classList.remove('open');
+    alert(`✅ ${_scoreEditName} için skor ${newScore} olarak güncellendi.`);
+    _scoreEditUid=null;
+    loadAdminData();
+  } catch(e) { alert('❌ Hata: '+e.message); }
+};
+
+window.clearPlayerScore = async function() {
+  if (!_scoreEditUid) return;
+  if (!confirm(`${_scoreEditName} adlı oyuncunun skoru silinsin (0 yapılsın)?`)) return;
+  try {
+    await updateDoc(doc(db,"users",_scoreEditUid),{highScore:0});
+    document.getElementById('scoreEditModal').classList.remove('open');
+    alert(`✅ ${_scoreEditName} skoru silindi.`);
+    _scoreEditUid=null;
+    loadAdminData();
+  } catch(e) { alert('❌ Hata: '+e.message); }
+};
+
+// ════ FIX: loadAdminData also checks event UI ════
+const _origLoadAdminData = loadAdminData;
+// (called after loadAdminData definition — patched below)
+
+// ════ LOGIN ANIMATION (unchanged) ════
+(function initLoginAnim() {
+  const fc=document.getElementById('fogCanvas');
+  if (!fc) return;
+  const fctx=fc.getContext('2d');
+  let W2,H2;
+  function resize(){W2=fc.width=fc.offsetWidth||window.innerWidth;H2=fc.height=fc.offsetHeight||window.innerHeight;}
+  resize(); window.addEventListener('resize',resize);
+  const blobs=Array.from({length:12},()=>({
+    x:Math.random()*1.5-0.25,y:Math.random()*1.5-0.25,r:0.15+Math.random()*0.35,
+    vx:(Math.random()-0.5)*0.0004,vy:(Math.random()-0.5)*0.0003,
+    h:200+Math.random()*160,s:0.3+Math.random()*0.4,l:12+Math.random()*15,a:0.04+Math.random()*0.06
+  }));
+  const lp=document.getElementById('loginParticles');
+  for(let i=0;i<18;i++){
+    const d=document.createElement('div');
+    d.className='lp';
+    const size=2+Math.random()*5;
+    const colors=['rgba(79,255,176,0.6)','rgba(96,180,255,0.5)','rgba(255,200,66,0.4)','rgba(255,77,125,0.4)'];
+    d.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${6+Math.random()*10}s;animation-delay:${-Math.random()*12}s;filter:blur(${Math.random()*2}px);`;
+    lp.appendChild(d);
+  }
+  function animFog(){
+    if (!document.getElementById('loginScreen').classList.contains('active')){requestAnimationFrame(animFog);return;}
+    fctx.clearRect(0,0,W2,H2);
+    blobs.forEach(b=>{
+      b.x+=b.vx;b.y+=b.vy;
+      if(b.x<-0.5)b.x=1.5;if(b.x>1.5)b.x=-0.5;
+      if(b.y<-0.5)b.y=1.5;if(b.y>1.5)b.y=-0.5;
+      const gx=b.x*W2,gy=b.y*H2,gr=b.r*Math.max(W2,H2);
+      const g=fctx.createRadialGradient(gx,gy,0,gx,gy,gr);
+      g.addColorStop(0,`hsla(${b.h},${Math.round(b.s*100)}%,${b.l}%,${b.a})`);
+      g.addColorStop(1,'transparent');
+      fctx.fillStyle=g;fctx.fillRect(0,0,W2,H2);
+    });
+    requestAnimationFrame(animFog);
+  }
+  animFog();
+})();
+</script>
+</body>
+</html>
